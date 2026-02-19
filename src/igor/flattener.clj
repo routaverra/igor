@@ -28,6 +28,10 @@
                     (set (keys (protocols/codomain node)))
                     types/Set)
                    ;; substitution of sets requires forwarding of bindings. skip for now...
+
+                   (satisfies? protocols/IInclude node)
+                   ;; global constraints (regular, cost_regular, table, graph constraints)
+                   ;; must not be reified — keep them inline in conjunctions
                    )]
     (if preserve?
       substitutions

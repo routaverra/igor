@@ -19,12 +19,6 @@
   (str "array2d(1.." rows ", 1.." cols ", "
        (terms/to-literal-array flat-elements) ")"))
 
-(defn- array2d-set-str
-  "MiniZinc array2d(1..rows, S, [flat...]) where S is a set index"
-  [rows col-set flat-elements]
-  (str "array2d(1.." rows ", " (mzn-set-str col-set) ", "
-       (terms/to-literal-array flat-elements) ")"))
-
 (defn- flat-transition-table
   "Flatten transitions vec-of-maps into row-major order by sorted alphabet.
    Missing keys map to 0 (MiniZinc dead state)."
@@ -82,7 +76,7 @@
            ")"))))
 
 ;; ============================================================
-;; TermRegular (set-alphabet overload)
+;; TermRegular (classic 1..S overload with offset remapping)
 ;; ============================================================
 
 (defrecord TermRegular [argv dfa]
@@ -98,14 +92,21 @@
   (translate [self]
     (let [{:keys [states alphabet transitions start accept]} (:dfa self)
           alphabet-sorted (sort alphabet)
+          offset (- 1 (first alphabet-sorted))
+          s (count alphabet)
           q (long states)
           q0 (inc start)
           f-set (mzn-set-str (map inc accept))
+          x-strs (map (fn [v]
+                        (if (zero? offset)
+                          (protocols/translate v)
+                          (str "(" (protocols/translate v) " + " offset ")")))
+                      (:argv self))
           flat (flat-transition-table transitions alphabet-sorted)]
       (str "regular("
-           (terms/to-literal-array (map protocols/translate (:argv self)))
-           ", " q ", " (mzn-set-str alphabet) ", "
-           (array2d-set-str q alphabet flat)
+           (terms/to-literal-array x-strs)
+           ", " q ", " s ", "
+           (array2d-str q s flat)
            ", " q0 ", " f-set ")"))))
 
 ;; ============================================================
