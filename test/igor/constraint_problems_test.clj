@@ -1175,20 +1175,15 @@
              :when (<= 0 interval 24)]
          interval)))
 
-(defn- cp-member-of
-  "Igor constraint: `expr` equals one of the values in `value-set`."
-  [expr value-set]
-  (apply i/disjunction (map #(i/= expr %) (sort value-set))))
-
 (defn- cp-consonant?
   "Igor constraint: `interval-expr` is a consonant harmonic interval."
   [interval-expr]
-  (cp-member-of interval-expr cp-consonant-intervals))
+  (i/contains? cp-consonant-intervals interval-expr))
 
 (defn- cp-perfect?
   "Igor constraint: `interval-expr` is a perfect consonance."
   [interval-expr]
-  (cp-member-of interval-expr cp-perfect-intervals))
+  (i/contains? cp-perfect-intervals interval-expr))
 
 (defn- cp-stepwise?
   "Igor constraint: melodic `motion` is stepwise (at most 2 semitones
