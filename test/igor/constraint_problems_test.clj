@@ -889,3 +889,242 @@
       (is (<= (+ a* (* 2 b*)) 12))
       ;; Optimal profit is 32 (a=4, b=4)
       (is (= 32 profit*)))))
+
+;; ============================================================
+;; 17. Neo-Riemannian chord pathfinding
+;; ============================================================
+
+;; Shared infrastructure for neo-Riemannian constraint problems.
+;;
+;; Encoding: 24 triads as integers 0-23.
+;;   0-11  = C major .. B major (root = triad index)
+;;   12-23 = C minor .. B minor (root = triad index - 12)
+;;
+;; Neo-Riemannian operations R, P, L each move one voice while keeping two
+;; common tones. Whether the moving voice rises or falls depends on quality:
+;;
+;; From MAJOR (root r):
+;;   R -> relative minor (root r+9 mod 12): fifth RISES by 2 semitones
+;;   P -> parallel minor (root r):           third FALLS by 1 semitone
+;;   L -> leading-tone minor (root r+4):     root  FALLS by 1 semitone
+;;   => 1 rising (R), 2 falling (P, L)
+;;
+;; From MINOR (root r, encoded 12+r):
+;;   P -> parallel major (root r):              third RISES by 1 semitone
+;;   L -> leading-tone major (root r+8 mod 12): fifth RISES by 1 semitone
+;;   R -> relative major (root r+3 mod 12):     root  FALLS by 2 semitones
+;;   => 2 rising (P, L), 1 falling (R)
+;;
+;; Edge weights (voice-leading distance in semitones):
+;;   R: 2 semitones   P: 1 semitone   L: 1 semitone
+
+(def ^:private note-names
+  ["C" "Db" "D" "Eb" "E" "F" "F#" "G" "Ab" "A" "Bb" "B"])
+
+(defn- triad-name [id]
+  (let [root (mod id 12)
+        quality (if (< id 12) "maj" "min")]
+    (str (nth note-names root) " " quality)))
+
+(defn- rising-neighbors
+  "Returns the vector of triad IDs reachable via rising RPL transforms from triad `id`."
+  [id]
+  (if (< id 12)
+    ;; Major: only R rises -> minor at root (r+9)%12
+    [(+ 12 (mod (+ id 9) 12))]
+    ;; Minor: P rises -> parallel major, L rises -> leading-tone major
+    (let [r (- id 12)]
+      [r                             ;; P -> major[r]
+       (mod (+ r 8) 12)])))          ;; L -> major[(r+8)%12]
+
+(def ^:private rising-adj
+  "For each of 24 triads, the vector of rising neighbors."
+  (mapv rising-neighbors (range 24)))
+
+(def ^:private edge-weight
+  "Voice-leading distance for each RPL operation."
+  ;; From major: only R (weight 2). From minor: P then L (both weight 1).
+  ;; Stored per-triad as a vector parallel to rising-adj.
+  (vec (for [id (range 24)]
+         (if (< id 12) [2] [1 1]))))
+
+(defn- pad-neighbors
+  "Pad each adjacency list to exactly `width` entries by repeating the first
+   neighbor. This makes all rows the same length so i/nth can index uniformly.
+   The choice variable's domain is restricted to the real neighbor count."
+  [adj width]
+  (mapv (fn [nbrs]
+          (vec (take width (concat nbrs (repeat (first nbrs))))))
+        adj))
+
+(deftest neo-riemannian-rising-cycle-test
+  (testing "Hamiltonian cycle through all 24 major/minor triads using only rising RPL transforms"
+    ;; Since rising edges alternate major->minor->major, the cycle decomposes
+    ;; into 12 major-minor pairs. From major[r] the only rising move is R to
+    ;; minor[(r+9)%12]. From minor[s] choose P (-> major[s]) or L (-> major[(s+8)%12]).
+    ;; This reduces to a Hamiltonian cycle on 12 major nodes where from r
+    ;; the successor is (r+9)%12 or (r+5)%12.
+    (let [n 12
+          node-domain (range n)
+          choice (vec (repeatedly n #(i/fresh-int (range 2))))
+          next-major (vec (for [r (range n)]
+                            (i/nth [(mod (+ r 9) n) (mod (+ r 5) n)] (nth choice r))))
+          pos (vec (repeatedly n #(i/fresh-int node-domain)))
+          start (i/= (nth pos 0) 0)
+          chain (apply i/conjunction
+                       (for [k (range (dec n))]
+                         (i/= (nth pos (inc k))
+                               (i/nth (vec next-major) (nth pos k)))))
+          close (i/= (i/nth (vec next-major) (nth pos (dec n))) 0)
+          all-diff (->> (for [i (range n) j (range (inc i) n)]
+                          (i/not= (nth pos i) (nth pos j)))
+                        (apply i/conjunction))
+          solution (i/satisfy (i/and start chain close all-diff))
+          pos* (mapv solution pos)
+          choice* (mapv solution choice)]
+      (is (= (set (range n)) (set pos*)))
+      (is (= 0 (first pos*)))
+      (doseq [k (range n)]
+        (let [curr (nth pos* k)
+              nxt (nth pos* (mod (inc k) n))
+              expected (if (= 0 (nth choice* curr))
+                         (mod (+ curr 9) n)
+                         (mod (+ curr 5) n))]
+          (is (= nxt expected)))))))
+
+(deftest neo-riemannian-shortest-rising-cycle-test
+  (testing "find rising cycle from C major back to C major (any length)"
+    ;; Unlike the Hamiltonian test, the path can revisit triads.
+    ;; Rising edges are bipartite (major->minor->major) so cycles have
+    ;; even length. We allocate max-len steps; the solver finds a valid
+    ;; cycle. Once it returns to C major the path stays at C major.
+    (let [max-len 10
+          triad-domain (range 24)
+          padded-adj (pad-neighbors rising-adj 2)
+          nbr-col0 (mapv #(nth % 0) padded-adj)
+          nbr-col1 (mapv #(nth % 1) padded-adj)
+          ;; path[t] = triad at step t
+          path (vec (repeatedly (inc max-len) #(i/fresh-int triad-domain)))
+          start (i/= (nth path 0) 0)
+          ;; arrived[t] = 1 once we've returned to C major (at step >= 2)
+          arrived (vec (repeatedly (inc max-len) #(i/fresh-int (range 2))))
+          init-arrived (i/and (i/= (nth arrived 0) 0) (i/= (nth arrived 1) 0))
+          arrive-chain
+          (apply i/conjunction
+                 (for [t (range 2 (inc max-len))]
+                   (i/and
+                    (i/when (i/= (nth arrived (dec t)) 1) (i/= (nth arrived t) 1))
+                    (i/when (i/= (nth path t) 0) (i/= (nth arrived t) 1))
+                    (i/when (i/and (i/= (nth arrived (dec t)) 0)
+                                   (i/not= (nth path t) 0))
+                      (i/= (nth arrived t) 0)))))
+          must-arrive (i/= (nth arrived max-len) 1)
+          ;; transitions: follow rising edges before arrival, self-loop at 0 after
+          step-choice (vec (repeatedly max-len #(i/fresh-int (range 2))))
+          transitions
+          (apply i/conjunction
+                 (for [t (range max-len)]
+                   (let [nbr0 (i/nth nbr-col0 (nth path t))
+                         nbr1 (i/nth nbr-col1 (nth path t))]
+                     (i/if (i/= (nth arrived t) 0)
+                       (i/= (nth path (inc t))
+                             (i/nth [nbr0 nbr1] (nth step-choice t)))
+                       (i/= (nth path (inc t)) 0)))))
+          ;; minimize cycle length = maximize negative arrival step
+          ;; arrival-step = first t where arrived[t] = 1
+          ;; = sum of (1 - arrived[t]) for t in 0..max-len, roughly
+          ;; Actually: count non-arrived steps = steps before cycle closes
+          non-arrived-count (apply i/+ (for [t (range (inc max-len))]
+                                         (i/if (i/= (nth arrived t) 0) 1 0)))
+          solution (i/maximize (i/- 0 non-arrived-count)
+                               (i/and start init-arrived arrive-chain
+                                      must-arrive transitions))
+          path* (mapv solution path)
+          arrived* (mapv solution arrived)
+          arrival-step (first (filter #(= 1 (nth arrived* %)) (range (inc max-len))))
+          active-path (subvec path* 0 (inc arrival-step))]
+      ;; Verify start
+      (is (= 0 (first active-path)))
+      ;; Verify returns to C major
+      (is (= 0 (last active-path)))
+      ;; Cycle length must be > 0
+      (is (> (count active-path) 1))
+      ;; Verify all active transitions are rising edges
+      (doseq [t (range (dec (count active-path)))]
+        (let [from (nth active-path t)
+              to (nth active-path (inc t))]
+          (is (some #{to} (rising-neighbors from))
+              (str "Step " t ": " (triad-name from) " -> " (triad-name to)
+                   " is not a rising edge")))))))
+
+(deftest neo-riemannian-rising-path-test
+  (testing "find rising path from C major to F# major (tritone away) in at most 8 steps"
+    ;; F# major = triad 6. This is the most distant point on the circle of
+    ;; fifths from C. Finding a rising-only path there exercises the
+    ;; constraint solver's ability to navigate the Tonnetz.
+    (let [max-len 8
+          target 6 ;; F# major
+          triad-domain (range 24)
+          padded-adj (pad-neighbors rising-adj 2)
+          path (vec (repeatedly (inc max-len) #(i/fresh-int triad-domain)))
+          start (i/= (nth path 0) 0)
+          ;; We want to reach F# major at some step <= max-len.
+          ;; Use an "arrived" flag: once we hit the target, we stay there.
+          ;; arrived[t] = 1 if we've reached target by step t, else 0
+          arrived (vec (repeatedly (inc max-len) #(i/fresh-int (range 2))))
+          ;; arrived[0] = 0 (haven't arrived at start, since start != target)
+          init-arrived (i/= (nth arrived 0) 0)
+          ;; arrived[t] = 1 if path[t] = target or arrived[t-1] = 1
+          arrive-chain
+          (apply i/conjunction
+                 (for [t (range 1 (inc max-len))]
+                   (i/and
+                    ;; if already arrived, stay arrived
+                    (i/when (i/= (nth arrived (dec t)) 1)
+                      (i/= (nth arrived t) 1))
+                    ;; if path[t] = target, mark arrived
+                    (i/when (i/= (nth path t) target)
+                      (i/= (nth arrived t) 1))
+                    ;; if not arrived yet and path[t] != target, stay not arrived
+                    (i/when (i/and (i/= (nth arrived (dec t)) 0)
+                                   (i/not= (nth path t) target))
+                      (i/= (nth arrived t) 0)))))
+          ;; must arrive by the end
+          must-arrive (i/= (nth arrived max-len) 1)
+          ;; transitions: only constrain steps before arrival.
+          ;; Once arrived, the path can stay at target (self-loop effectively).
+          step-choice (vec (repeatedly max-len #(i/fresh-int (range 2))))
+          nbr-col0 (mapv #(nth % 0) padded-adj)
+          nbr-col1 (mapv #(nth % 1) padded-adj)
+          transitions
+          (apply i/conjunction
+                 (for [t (range max-len)]
+                   (let [nbr0 (i/nth nbr-col0 (nth path t))
+                         nbr1 (i/nth nbr-col1 (nth path t))]
+                     ;; if not yet arrived, must follow a rising edge
+                     ;; if arrived, stay at target
+                     (i/if (i/= (nth arrived t) 0)
+                       (i/= (nth path (inc t))
+                             (i/nth [nbr0 nbr1] (nth step-choice t)))
+                       (i/= (nth path (inc t)) target)))))
+          solution (i/satisfy (i/and start init-arrived arrive-chain
+                                     must-arrive transitions))
+          path* (mapv solution path)
+          arrived* (mapv solution arrived)
+          ;; find the actual arrival step
+          arrival-step (first (filter #(= 1 (nth arrived* %)) (range (inc max-len))))
+          ;; the active path is path[0..arrival-step]
+          active-path (subvec path* 0 (inc arrival-step))]
+      ;; Verify start
+      (is (= 0 (first active-path)))
+      ;; Verify end
+      (is (= target (last active-path)))
+      ;; Verify all active transitions are rising edges
+      (doseq [t (range (count (rest active-path)))]
+        (let [from (nth active-path t)
+              to (nth active-path (inc t))]
+          (is (some #{to} (rising-neighbors from))
+              (str "Step " t ": " (triad-name from) " -> " (triad-name to)
+                   " is not a rising edge"))))
+      ;; Path should be at most 8 steps
+      (is (<= (dec (count active-path)) max-len)))))
