@@ -67,9 +67,29 @@
 
 ;; --- Constructor functions ---
 
-(defn intersection [& args] (api/cacheing-validate (->TermIntersection (vec args))))
-(defn difference [& args] (api/cacheing-validate (->TermDifference (vec args))))
-(defn sym-diff [& args] (api/cacheing-validate (->TermSymDiff (vec args))))
-(defn union [& args] (api/cacheing-validate (->TermUnion (vec args))))
-(defn subset? [& args] (api/cacheing-validate (->TermSubset (vec args))))
-(defn superset? [& args] (api/cacheing-validate (->TermSuperset (vec args))))
+(defn- all-ground-sets? [args] (every? set? args))
+
+(defn intersection [& args]
+  (if (all-ground-sets? args)
+    (apply set/intersection args)
+    (api/cacheing-validate (->TermIntersection (vec args)))))
+(defn difference [& args]
+  (if (all-ground-sets? args)
+    (apply set/difference args)
+    (api/cacheing-validate (->TermDifference (vec args)))))
+(defn sym-diff [& args]
+  (if (all-ground-sets? args)
+    (reduce i.set/sym-diff args)
+    (api/cacheing-validate (->TermSymDiff (vec args)))))
+(defn union [& args]
+  (if (all-ground-sets? args)
+    (apply set/union args)
+    (api/cacheing-validate (->TermUnion (vec args)))))
+(defn subset? [& args]
+  (if (all-ground-sets? args)
+    (every? true? (map (fn [[a b]] (set/subset? a b)) (partition 2 1 args)))
+    (api/cacheing-validate (->TermSubset (vec args)))))
+(defn superset? [& args]
+  (if (all-ground-sets? args)
+    (every? true? (map (fn [[a b]] (set/superset? a b)) (partition 2 1 args)))
+    (api/cacheing-validate (->TermSuperset (vec args)))))

@@ -14,6 +14,14 @@
          modulo remainder abs* all-different
          translate-comparator)
 
+(defn ground?
+  "Returns true if x is a ground value (literal number, boolean, or set of ground values)
+   with no decision variables — safe to evaluate in pure Clojure."
+  [x]
+  (clojure.core/or (number? x)
+                   (instance? Boolean x)
+                   (clojure.core/and (set? x) (every? ground? x))))
+
 (defn translation-error! [self]
   (throw
    (ex-info
@@ -493,52 +501,150 @@
 
 ;; --- Constructor functions ---
 
-(defn plus [& args] (api/cacheing-validate (->TermPlus (vec args))))
-(defn product [& args] (api/cacheing-validate (->TermProduct (vec args))))
-(defn minus [& args] (api/cacheing-validate (->TermMinus (vec args))))
-(defn divide [& args] (api/cacheing-validate (->TermDivide (vec args))))
-(defn inc* [x] (api/cacheing-validate (->TermInc [x])))
-(defn dec* [x] (api/cacheing-validate (->TermDec [x])))
-(defn even?* [x] (api/cacheing-validate (->TermEven? [x])))
-(defn odd?* [x] (api/cacheing-validate (->TermOdd? [x])))
-(defn max* [& args] (api/cacheing-validate (->TermMax (vec args))))
-(defn min* [& args] (api/cacheing-validate (->TermMin (vec args))))
-(defn true?* [x] (api/cacheing-validate (->TermTrue? [x])))
-(defn false?* [x] (api/cacheing-validate (->TermFalse? [x])))
-(defn and* [& args] (api/cacheing-validate (->TermAnd (vec args))))
-(defn or* [& args] (api/cacheing-validate (->TermOr (vec args))))
-(defn when* [test body] (api/cacheing-validate (->TermWhen [test body])))
-(defn not* [x] (api/cacheing-validate (->TermNot [x])))
-(defn greater-than [& args] (api/cacheing-validate (->TermGreaterThan (vec args))))
-(defn less-than [& args] (api/cacheing-validate (->TermLessThan (vec args))))
-(defn gte [& args] (api/cacheing-validate (->TermGreaterThanOrEqualTo (vec args))))
-(defn lte [& args] (api/cacheing-validate (->TermLessThanOrEqualTo (vec args))))
-(defn equals [& args] (api/cacheing-validate (->TermEquals (vec args))))
-(defn not-equals [& args] (not* (apply equals args)))
-(defn iff [test then else] (api/cacheing-validate (->TermIf [test then else])))
+(defn plus [& args]
+  (if (every? ground? args)
+    (apply clojure.core/+ args)
+    (api/cacheing-validate (->TermPlus (vec args)))))
+(defn product [& args]
+  (if (every? ground? args)
+    (apply clojure.core/* args)
+    (api/cacheing-validate (->TermProduct (vec args)))))
+(defn minus [& args]
+  (if (every? ground? args)
+    (apply clojure.core/- args)
+    (api/cacheing-validate (->TermMinus (vec args)))))
+(defn divide [& args]
+  (if (every? ground? args)
+    (apply quot args)
+    (api/cacheing-validate (->TermDivide (vec args)))))
+(defn inc* [x]
+  (if (ground? x)
+    (clojure.core/inc x)
+    (api/cacheing-validate (->TermInc [x]))))
+(defn dec* [x]
+  (if (ground? x)
+    (clojure.core/dec x)
+    (api/cacheing-validate (->TermDec [x]))))
+(defn even?* [x]
+  (if (ground? x)
+    (clojure.core/even? x)
+    (api/cacheing-validate (->TermEven? [x]))))
+(defn odd?* [x]
+  (if (ground? x)
+    (clojure.core/odd? x)
+    (api/cacheing-validate (->TermOdd? [x]))))
+(defn max* [& args]
+  (if (every? ground? args)
+    (apply clojure.core/max args)
+    (api/cacheing-validate (->TermMax (vec args)))))
+(defn min* [& args]
+  (if (every? ground? args)
+    (apply clojure.core/min args)
+    (api/cacheing-validate (->TermMin (vec args)))))
+(defn true?* [x]
+  (if (ground? x)
+    (clojure.core/true? x)
+    (api/cacheing-validate (->TermTrue? [x]))))
+(defn false?* [x]
+  (if (ground? x)
+    (clojure.core/false? x)
+    (api/cacheing-validate (->TermFalse? [x]))))
+(defn and* [& args]
+  (if (every? ground? args)
+    (every? identity args)
+    (api/cacheing-validate (->TermAnd (vec args)))))
+(defn or* [& args]
+  (if (every? ground? args)
+    (boolean (some identity args))
+    (api/cacheing-validate (->TermOr (vec args)))))
+(defn when* [test body]
+  (if (every? ground? [test body])
+    (clojure.core/or (clojure.core/not test) body)
+    (api/cacheing-validate (->TermWhen [test body]))))
+(defn not* [x]
+  (if (ground? x)
+    (clojure.core/not x)
+    (api/cacheing-validate (->TermNot [x]))))
+(defn greater-than [& args]
+  (if (every? ground? args)
+    (apply clojure.core/> args)
+    (api/cacheing-validate (->TermGreaterThan (vec args)))))
+(defn less-than [& args]
+  (if (every? ground? args)
+    (apply clojure.core/< args)
+    (api/cacheing-validate (->TermLessThan (vec args)))))
+(defn gte [& args]
+  (if (every? ground? args)
+    (apply clojure.core/>= args)
+    (api/cacheing-validate (->TermGreaterThanOrEqualTo (vec args)))))
+(defn lte [& args]
+  (if (every? ground? args)
+    (apply clojure.core/<= args)
+    (api/cacheing-validate (->TermLessThanOrEqualTo (vec args)))))
+(defn equals [& args]
+  (if (every? ground? args)
+    (apply clojure.core/= args)
+    (api/cacheing-validate (->TermEquals (vec args)))))
+(defn not-equals [& args]
+  (if (every? ground? args)
+    (apply clojure.core/not= args)
+    (not* (apply equals args))))
+(defn iff [test then else]
+  (if (every? ground? [test then else])
+    (if test then else)
+    (api/cacheing-validate (->TermIf [test then else]))))
 (defn cond* [& args]
   (let [penultimate (get (vec args) (clojure.core/- (clojure.core/count args) 2))]
     (clojure.core/when-not (clojure.core/contains? #{:else :default} penultimate)
       (throw (ex-info "cond requires :else or :default" {})))
-    (api/cacheing-validate (->TermCond (-> (drop-last 2 args) vec (conj (last args)))))))
-(defn contains?* [set-expr elem] (api/cacheing-validate (->TermContains [set-expr elem])))
-(defn pos?* [x] (api/cacheing-validate (->TermPos? [x])))
-(defn neg?* [x] (api/cacheing-validate (->TermNeg? [x])))
-(defn zero?* [x] (api/cacheing-validate (->TermZero? [x])))
-(defn modulo [& args] (api/cacheing-validate (->TermMod (vec args))))
-(defn remainder [& args] (api/cacheing-validate (->TermRem (vec args))))
+    (if (every? ground? (-> (drop-last 2 args) vec (conj (last args))))
+      (let [pairs (partition-all 2 (-> (drop-last 2 args) vec (conj (last args))))]
+        (loop [[[test-or-val expr :as pair] & rest] pairs]
+          (case (clojure.core/count pair)
+            2 (if test-or-val expr (recur rest))
+            1 test-or-val)))
+      (api/cacheing-validate (->TermCond (-> (drop-last 2 args) vec (conj (last args))))))))
+(defn contains?* [set-expr elem]
+  (if (every? ground? [set-expr elem])
+    (clojure.core/contains? set-expr elem)
+    (api/cacheing-validate (->TermContains [set-expr elem]))))
+(defn pos?* [x]
+  (if (ground? x)
+    (clojure.core/pos? x)
+    (api/cacheing-validate (->TermPos? [x]))))
+(defn neg?* [x]
+  (if (ground? x)
+    (clojure.core/neg? x)
+    (api/cacheing-validate (->TermNeg? [x]))))
+(defn zero?* [x]
+  (if (ground? x)
+    (clojure.core/zero? x)
+    (api/cacheing-validate (->TermZero? [x]))))
+(defn modulo [& args]
+  (if (every? ground? args)
+    (apply clojure.core/mod args)
+    (api/cacheing-validate (->TermMod (vec args)))))
+(defn remainder [& args]
+  (if (every? ground? args)
+    (apply clojure.core/rem args)
+    (api/cacheing-validate (->TermRem (vec args)))))
 (defn abs* [x]
-  (if (number? x)
+  (if (ground? x)
     (Math/abs (long x))
     (api/cacheing-validate (->TermAbs [x]))))
 (defn all-different [& args]
-  (if (every? number? args)
+  (if (every? ground? args)
     (clojure.core/= (clojure.core/count args) (clojure.core/count (distinct args)))
     (api/cacheing-validate (->TermAllDifferent (vec args)))))
-(defn count* [x] (api/cacheing-validate (->TermCount [x])))
+(defn count* [x]
+  (if (ground? x)
+    (clojure.core/count x)
+    (api/cacheing-validate (->TermCount [x]))))
 (defn nth* [elems idx]
   {:pre [(vector? elems) (clojure.core/>= (clojure.core/count elems) 1)]}
-  (api/cacheing-validate (->TermNth (conj elems idx) (clojure.core/count elems))))
+  (if (clojure.core/and (every? ground? elems) (ground? idx))
+    (clojure.core/nth elems idx)
+    (api/cacheing-validate (->TermNth (conj elems idx) (clojure.core/count elems)))))
 
 ;; --- translate-comparator (moved from api) ---
 
