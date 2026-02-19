@@ -25,15 +25,28 @@
        (map (fn [[decision domain]]
               (let [set (api/binding-set (get bindings decision))
                     type (types/domain->type domain)
-                    _ (when (and (= type types/Set) (nil? set))
-                        (throw (ex-info (str "unbound set decision: " (protocols/write decision)) {})))
                     env {:range (some-> set protocols/translate)
                          :decision (protocols/translate decision)}
                     >>* (partial >> env)]
                 (cond
-                  (= type types/Set) (>>* "var set of {{range}}: {{decision}};")
-                  (= type types/Numeric) (>>* "var int: {{decision}};")
-                  (= type types/Bool) (>>* "var bool: {{decision}};")))))
+                  (= type types/Set)
+                  (if set
+                    (>>* "var set of {{range}}: {{decision}};")
+                    (throw (ex-info (str "unbound set decision: " (protocols/write decision)) {})))
+
+                  (= type types/Numeric)
+                  (if set
+                    (>>* "var {{range}}: {{decision}};")
+                    (if (or (api/impl-decision? decision)
+                            (api/lexical-decision? decision))
+                      (>>* "var int: {{decision}};")
+                      (throw (ex-info
+                              (str "unbound numeric decision: " (protocols/write decision)
+                                   ". Use (i/bind domain decision) or (i/fresh-int domain) to specify bounds.")
+                              {}))))
+
+                  (= type types/Bool)
+                  (>>* "var bool: {{decision}};")))))
        sort))
 
 (defmulti detranspile*

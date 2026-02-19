@@ -27,6 +27,13 @@
 (defn fresh-set [super]
   (api/bind super (fresh)))
 
+(defn fresh-int
+  "Mint a fresh integer decision bounded to the given domain."
+  ([domain]
+   (api/force-type (api/bind domain (fresh)) types/Numeric))
+  ([domain id]
+   (api/force-type (api/bind domain (fresh id)) types/Numeric)))
+
 (def bind api/bind)
 
 (defn satisfy
@@ -40,10 +47,6 @@
    (maximize obj constraint {}))
   ([obj constraint opts]
    (solver/solve opts constraint obj)))
-
-(defn solve-for [constraint-fn]
-  (let [x (fresh)]
-    (get (satisfy (constraint-fn x)) x)))
 
 (defn dithered? [x]
   (boolean (api/cacheing-decisions x)))
