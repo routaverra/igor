@@ -156,22 +156,185 @@
 ;; ============================================================
 
 (defn- latex-var-name
-  "Format a decision variable ID for LaTeX. Trailing digits become subscripts."
-  [id]
-  (let [s (str id)]
-    (if-let [[_ base digits] (re-matches #"(.+?)(\d+)$" s)]
-      (str base "_{" digits "}")
-      s)))
+  "Format a display name for LaTeX. Trailing digits become subscripts."
+  [s]
+  (if-let [[_ base digits] (re-matches #"(.+?)(\d+)$" s)]
+    (str base "_{" digits "}")
+    s))
 
 (defn- unicode-var-name
-  "Format a decision variable ID for Unicode."
-  [id]
-  (let [s (str id)
-        sub-digits {\0 \u2080 \1 \u2081 \2 \u2082 \3 \u2083 \4 \u2084
+  "Format a display name for Unicode. Trailing digits become subscript chars."
+  [s]
+  (let [sub-digits {\0 \u2080 \1 \u2081 \2 \u2082 \3 \u2083 \4 \u2084
                      \5 \u2085 \6 \u2086 \7 \u2087 \8 \u2088 \9 \u2089}]
     (if-let [[_ base digits] (re-matches #"(.+?)(\d+)$" s)]
       (str base (apply str (map sub-digits digits)))
       s)))
+
+;; ============================================================
+;; Auto-naming: collect decisions and assign clean names
+;; ============================================================
+
+(def ^:private iterator-names
+  "Conventional iterator variable names for quantifier-bound decisions."
+  ["i" "j" "k" "l" "m" "n"])
+
+(defn- collect-decisions
+  "Walk an AST, collecting all unique non-lexical Decision nodes
+   in the order they are first encountered."
+  [root]
+  (let [seen (atom #{})
+        result (atom [])]
+    (walk/prewalk
+     (fn [node]
+       (when (and (instance? igor.api.Decision node)
+                  (not (api/lexical-decision? node))
+                  (not (contains? @seen node)))
+         (swap! seen conj node)
+         (swap! result conj node))
+       node)
+     root)
+    @result))
+
+(defn- collect-quantifier-decisions
+  "Walk an AST, collecting all lexical (quantifier-bound) Decision nodes
+   in the order they are first encountered."
+  [root]
+  (let [seen (atom #{})
+        result (atom [])]
+    (walk/prewalk
+     (fn [node]
+       (when (and (instance? igor.api.Decision node)
+                  (api/lexical-decision? node)
+                  (not (contains? @seen node)))
+         (swap! seen conj node)
+         (swap! result conj node))
+       node)
+     root)
+    @result))
+
+(defn- assign-display-names
+  "Assign clean display names to all decisions in an AST.
+   Problem variables get x_1, x_2, ...
+   Quantifier-bound variables get i, j, k, l, m, n, i_2, j_2, ..."
+  [root]
+  (let [problem-vars (collect-decisions root)
+        quant-vars (collect-quantifier-decisions root)
+        problem-names (into {}
+                            (map-indexed
+                             (fn [idx d]
+                               [d (str "x" (inc idx))])
+                             problem-vars))
+        quant-names (into {}
+                          (map-indexed
+                           (fn [idx d]
+                             (let [base-idx (mod idx (count iterator-names))
+                                   cycle (quot idx (count iterator-names))
+                                   base (nth iterator-names base-idx)]
+                               [d (if (zero? cycle)
+                                    base
+                                    (str base (inc cycle)))]))
+                           quant-vars))]
+    (merge problem-names quant-names)))
+
+;; ============================================================
+;; Domain declarations
+;; ============================================================
+
+(defn- compact-range
+  "Format a sorted set of integers as a compact range string.
+   If contiguous, renders as {min, ..., max}.
+   Otherwise renders the full set (for small sets) or {min, ..., max} anyway."
+  [sorted-set format-kw]
+  (let [elems (sort sorted-set)
+        n (count elems)
+        lo (first elems)
+        hi (last elems)
+        contiguous? (= n (inc (- hi lo)))]
+    (if (and contiguous? (> n 5))
+      (case format-kw
+        :latex (str "\\{" lo ", \\ldots, " hi "\\}")
+        :unicode (str "{" lo ", \u2026, " hi "}"))
+      ;; Small or non-contiguous: enumerate
+      (case format-kw
+        :latex (str "\\{" (str/join ", " elems) "\\}")
+        :unicode (str "{" (str/join ", " elems) "}")))))
+
+(defn- render-domain-declaration
+  "Render a single variable's domain declaration.
+   For int vars: x ∈ {0, ..., 9}
+   For set vars: A ⊆ {0, ..., 11}
+   For bool vars: b ∈ {⊤, ⊥}"
+  [decision display-name format-kw]
+  (let [var-type (api/forced-typed decision)
+        range-set (::api/range (meta decision))
+        name-str (case format-kw
+                   :latex (latex-var-name display-name)
+                   :unicode (unicode-var-name display-name))]
+    (cond
+      ;; Set variable: A ⊆ universe
+      (= var-type :igor.types/set)
+      (when range-set
+        (str name-str
+             (case format-kw :latex " \\subseteq " :unicode " \u2286 ")
+             (compact-range range-set format-kw)))
+
+      ;; Boolean variable
+      (= var-type :igor.types/boolean)
+      (str name-str
+           (case format-kw
+             :latex " \\in \\{\\top, \\bot\\}"
+             :unicode " \u2208 {\u22A4, \u22A5}"))
+
+      ;; Numeric (int) variable with range
+      range-set
+      (str name-str
+           (case format-kw :latex " \\in " :unicode " \u2208 ")
+           (compact-range range-set format-kw))
+
+      ;; Untyped/unbound — no declaration
+      :else nil)))
+
+(defn- render-declarations
+  "Render domain declarations for all problem variables.
+   Groups variables with identical domains onto one line."
+  [decisions var-names format-kw]
+  (let [;; Group decisions by [type range] to merge declarations
+        grouped (group-by (fn [d]
+                            [(api/forced-typed d) (::api/range (meta d))])
+                          decisions)
+        lines (keep
+               (fn [[_key ds]]
+                 (let [d (first ds)
+                       var-type (api/forced-typed d)
+                       range-set (::api/range (meta d))
+                       names (map #(let [dn (get var-names %)]
+                                     (case format-kw
+                                       :latex (latex-var-name dn)
+                                       :unicode (unicode-var-name dn)))
+                                  ds)
+                       name-str (str/join ", " names)]
+                   (cond
+                     (= var-type :igor.types/set)
+                     (when range-set
+                       (str name-str
+                            (case format-kw :latex " \\subseteq " :unicode " \u2286 ")
+                            (compact-range range-set format-kw)))
+
+                     (= var-type :igor.types/boolean)
+                     (str name-str
+                          (case format-kw
+                            :latex " \\in \\{\\top, \\bot\\}"
+                            :unicode " \u2208 {\u22A4, \u22A5}"))
+
+                     range-set
+                     (str name-str
+                          (case format-kw :latex " \\in " :unicode " \u2208 ")
+                          (compact-range range-set format-kw))
+
+                     :else nil)))
+               grouped)]
+    (vec lines)))
 
 ;; ============================================================
 ;; LaTeX render methods
@@ -185,8 +348,9 @@
     (render-subtree (first (:argv node)) env)))
 
 ;; --- Decision variables ---
-(defmethod render-node [igor.api.Decision :latex] [node _env]
-  (latex-var-name (:id node)))
+(defmethod render-node [igor.api.Decision :latex] [node env]
+  (let [display-name (get-in env [:var-names node] (str (:id node)))]
+    (latex-var-name display-name)))
 
 ;; --- Ground values ---
 (defmethod render-node [java.lang.Long :latex] [node _env]
@@ -448,8 +612,9 @@
     (render-subtree (first (:argv node)) env)))
 
 ;; --- Decision variables ---
-(defmethod render-node [igor.api.Decision :unicode] [node _env]
-  (unicode-var-name (:id node)))
+(defmethod render-node [igor.api.Decision :unicode] [node env]
+  (let [display-name (get-in env [:var-names node] (str (:id node)))]
+    (unicode-var-name display-name)))
 
 ;; --- Ground values ---
 (defmethod render-node [java.lang.Long :unicode] [node _env]
@@ -723,9 +888,13 @@
    definitions is {name -> TermAs-node}.
    Returns names in dependency order (dependencies first)."
   [definitions]
-  (let [;; dep-graph: name -> set of names this definition depends on
+  (let [def-name-set (set (keys definitions))
+        ;; dep-graph: name -> set of names this definition depends on
+        ;; Only count deps that are actually in the definitions map
         dep-graph (into {} (map (fn [[name node]]
-                                  [name (definition-deps node)])
+                                  [name (clojure.set/intersection
+                                         (definition-deps node)
+                                         def-name-set)])
                                 definitions))
         ;; Reverse graph: name -> set of names that depend on this one
         rev-graph (reduce (fn [m [name deps]]
@@ -754,6 +923,27 @@
 ;; render-notation — main entry point
 ;; ============================================================
 
+(defn- alias-definition?
+  "True when a TermAs wraps a bare Decision (no expression to define)."
+  [term-as-node]
+  (instance? igor.api.Decision (first (:argv term-as-node))))
+
+(defn- extract-aliases
+  "From a definitions map, extract alias entries (as wrapping bare Decision).
+   Returns {:aliases {Decision -> keyword-name}, :real-defs {name -> node}}."
+  [definitions]
+  (reduce-kv (fn [acc kw-name node]
+               (if (alias-definition? node)
+                 (update acc :aliases assoc (first (:argv node)) kw-name)
+                 (update acc :real-defs assoc kw-name node)))
+             {:aliases {} :real-defs {}}
+             definitions))
+
+(defn- alias-var-names
+  "Convert alias entries {Decision -> :keyword} into var-names {Decision -> string}."
+  [aliases]
+  (into {} (map (fn [[decision kw]] [decision (keyword->name kw)]) aliases)))
+
 (defn render-definition
   "Render a single definition line."
   [name term-as-node env]
@@ -777,14 +967,18 @@
    followed by the top-level expression."
   [expr & {:keys [format] :or {format :latex}}]
   (let [definitions (collect-definitions expr)
-        def-names (set (keys definitions))
-        sorted-names (topo-sort definitions)
-        env {:format format :definitions def-names}
+        {:keys [aliases real-defs]} (extract-aliases definitions)
+        def-names (set (keys real-defs))
+        sorted-names (topo-sort real-defs)
+        var-names (merge (assign-display-names expr) (alias-var-names aliases))
+        env {:format format :definitions def-names :var-names var-names}
+        problem-vars (collect-decisions expr)
+        decl-lines (render-declarations problem-vars var-names format)
         def-lines (mapv (fn [name]
-                          (render-definition name (get definitions name) env))
+                          (render-definition name (get real-defs name) env))
                         sorted-names)
         top-line (render-subtree expr env)]
-    (str/join "\n" (conj def-lines top-line))))
+    (str/join "\n" (concat decl-lines def-lines [top-line]))))
 
 (defn render-problem
   "Render a constraint problem as mathematical notation.
@@ -798,11 +992,30 @@
   (let [definitions (collect-definitions expr)
         obj-defs (when objective (collect-definitions objective))
         all-defs (merge definitions obj-defs)
-        def-names (set (keys all-defs))
-        sorted-names (topo-sort all-defs)
-        env {:format format :definitions def-names}
+        {:keys [aliases real-defs]} (extract-aliases all-defs)
+        def-names (set (keys real-defs))
+        sorted-names (topo-sort real-defs)
+        ;; Collect var names from both expr and objective
+        var-names (merge (assign-display-names expr)
+                         (alias-var-names aliases)
+                         (when objective
+                           (let [existing-count (count (collect-decisions expr))
+                                 obj-decisions (collect-decisions objective)
+                                 ;; Only name decisions not already seen in expr
+                                 expr-decisions (set (collect-decisions expr))
+                                 new-decisions (remove expr-decisions obj-decisions)]
+                             (into {}
+                                   (map-indexed
+                                    (fn [idx d]
+                                      [d (str "x" (+ existing-count idx 1))])
+                                    new-decisions)))))
+        env {:format format :definitions def-names :var-names var-names}
+        ;; Collect all problem vars from expr and objective
+        all-problem-vars (distinct (concat (collect-decisions expr)
+                                           (when objective (collect-decisions objective))))
+        decl-lines (render-declarations all-problem-vars var-names format)
         def-lines (mapv (fn [name]
-                          (render-definition name (get all-defs name) env))
+                          (render-definition name (get real-defs name) env))
                         sorted-names)
         constraint-str (render-subtree expr env)
         problem-line (if objective
@@ -813,4 +1026,4 @@
                        (case format
                          :latex (str "\\text{satisfy}(" constraint-str ")")
                          :unicode (str "satisfy(" constraint-str ")")))]
-    (str/join "\n" (conj def-lines problem-line))))
+    (str/join "\n" (concat decl-lines def-lines [problem-line]))))

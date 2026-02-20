@@ -58,7 +58,7 @@
 (deftest subset?-test
   (testing "subset?"
     (is (= false
-           (let [res (i/fresh "res")
+           (let [res (i/fresh)
                  a (i/fresh-set (range 12))
                  b (i/fresh-set (range 12))]
              (get
@@ -69,7 +69,7 @@
               res))))
 
     (is (= true
-           (let [res (i/fresh "res")
+           (let [res (i/fresh)
                  a (i/fresh-set (range 12))
                  b (i/fresh-set (range 12))]
              (get
@@ -82,7 +82,7 @@
 (deftest superset?-test
   (testing "superset?"
     (is (= false
-           (let [res (i/fresh "res")
+           (let [res (i/fresh)
                  a (i/fresh-set (range 12))
                  b (i/fresh-set (range 12))]
              (get
@@ -93,7 +93,7 @@
               res))))
 
     (is (= true
-           (let [res (i/fresh "res")
+           (let [res (i/fresh)
                  a (i/fresh-set (range 12))
                  b (i/fresh-set (range 12))]
              (get

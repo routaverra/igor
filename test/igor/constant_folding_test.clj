@@ -27,7 +27,7 @@
   "Like solve-numeric but for boolean-returning terms."
   [term-fn values]
   (let [decisions (mapv (fn [_] (i/fresh-int int-domain)) values)
-        result (i/fresh "result")
+        result (i/fresh)
         constraints (apply i/and
                            (i/= result (apply term-fn decisions))
                            (map (fn [d v] (i/= d v)) decisions values))]

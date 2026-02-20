@@ -102,7 +102,7 @@
 
 (deftest graph-bounded-dpath-test
   (testing "bounded directed path with cost minimization"
-    (let [cost (i/fresh-int (range 1000) "cost")
+    (let [cost (i/fresh-int (range 1000))
           handle (i/bounded-dpath rising-graph 0 6 cost)
           solution (i/maximize (i/- 0 cost) handle)
           nodes (i/active-nodes handle solution)
@@ -113,7 +113,7 @@
 
 (deftest graph-bounded-path-test
   (testing "bounded undirected path with cost"
-    (let [cost (i/fresh-int (range 100) "cost")
+    (let [cost (i/fresh-int (range 100))
           handle (i/bounded-path small-weighted-bidir-graph 0 3 cost)
           solution (i/satisfy handle)
           cost-val (get solution cost)]
@@ -206,7 +206,7 @@
 
 (deftest graph-weighted-spanning-tree-test
   (testing "minimum spanning tree in weighted bidirectional graph"
-    (let [cost (i/fresh-int (range 1000) "cost")
+    (let [cost (i/fresh-int (range 1000))
           handle (i/weighted-spanning-tree small-weighted-bidir-graph cost)
           solution (i/maximize (i/- 0 cost) handle)
           cost-val (get solution cost)
@@ -217,7 +217,7 @@
 
 (deftest graph-d-weighted-spanning-tree-test
   (testing "directed weighted spanning tree from root"
-    (let [cost (i/fresh-int (range 1000) "cost")
+    (let [cost (i/fresh-int (range 1000))
           handle (i/d-weighted-spanning-tree small-weighted-graph 0 cost)
           solution (i/satisfy handle)
           cost-val (get solution cost)
@@ -280,7 +280,7 @@
 
 (deftest graph-neo-riemannian-bounded-dpath-test
   (testing "shortest rising path with weight minimization"
-    (let [cost (i/fresh-int (range 1000) "cost")
+    (let [cost (i/fresh-int (range 1000))
           handle (i/bounded-dpath rising-graph 0 6 cost)
           solution (i/maximize (i/- 0 cost) handle)
           cost-val (get solution cost)

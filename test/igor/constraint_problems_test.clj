@@ -12,10 +12,10 @@
 (deftest send-more-money-test
   (testing "SEND + MORE = MONEY cryptarithmetic puzzle"
     (let [digits-domain (range 10)
-          s (i/fresh-int digits-domain "S") e (i/fresh-int digits-domain "E")
-          n (i/fresh-int digits-domain "N") d (i/fresh-int digits-domain "D")
-          m (i/fresh-int digits-domain "M") o (i/fresh-int digits-domain "O")
-          r (i/fresh-int digits-domain "R") y (i/fresh-int digits-domain "Y")
+          s (i/fresh-int digits-domain) e (i/fresh-int digits-domain)
+          n (i/fresh-int digits-domain) d (i/fresh-int digits-domain)
+          m (i/fresh-int digits-domain) o (i/fresh-int digits-domain)
+          r (i/fresh-int digits-domain) y (i/fresh-int digits-domain)
           digits [s e n d m o r y]
           send  (i/+ (i/* s 1000) (i/* e 100) (i/* n 10) d)
           more  (i/+ (i/* m 1000) (i/* o 100) (i/* r 10) e)
@@ -42,7 +42,7 @@
     (let [cell-domain (range 1 10)
           cells (vec (repeatedly 9 #(i/fresh-int cell-domain)))
           [a b c d e f g h k] cells
-          magic-sum (i/fresh-int (range 1 46) "magic")
+          magic-sum (i/fresh-int (range 1 46))
           ;; rows, cols, diags all equal magic-sum
           sums (i/and
                 (i/= magic-sum (i/+ a b c))
@@ -119,8 +119,8 @@
     ;; Items: weight/value pairs: (3,4), (4,5), (2,3), (5,7)
     ;; Capacity: 7
     (let [binary-domain (range 2)
-          x0 (i/fresh-int binary-domain "x0") x1 (i/fresh-int binary-domain "x1")
-          x2 (i/fresh-int binary-domain "x2") x3 (i/fresh-int binary-domain "x3")
+          x0 (i/fresh-int binary-domain) x1 (i/fresh-int binary-domain)
+          x2 (i/fresh-int binary-domain) x3 (i/fresh-int binary-domain)
           weight (i/+ (i/* 3 x0) (i/* 4 x1) (i/* 2 x2) (i/* 5 x3))
           value  (i/+ (i/* 4 x0) (i/* 5 x1) (i/* 3 x2) (i/* 7 x3))
           constraint (i/<= weight 7)
@@ -345,9 +345,9 @@
     ;; (an all-interval trichord). Use integer variables instead of sets
     ;; to avoid deeply nested forall.
     (let [pc-domain (range 12)
-          a (i/fresh-int pc-domain "pc0")
-          b (i/fresh-int pc-domain "pc1")
-          c (i/fresh-int pc-domain "pc2")
+          a (i/fresh-int pc-domain)
+          b (i/fresh-int pc-domain)
+          c (i/fresh-int pc-domain)
           constraint (i/and
                       ;; ordered to avoid symmetry
                       (i/< a b) (i/< b c)
@@ -368,9 +368,9 @@
     ;; Given chord 1 = [0, 4, 7] (C major)
     ;; Find assignment of C minor {0, 3, 7} to 3 voices minimizing total movement.
     (let [voice-domain (range 12)
-          v1 (i/fresh-int voice-domain "v1")
-          v2 (i/fresh-int voice-domain "v2")
-          v3 (i/fresh-int voice-domain "v3")
+          v1 (i/fresh-int voice-domain)
+          v2 (i/fresh-int voice-domain)
+          v3 (i/fresh-int voice-domain)
           constraint (i/and
                       ;; chord 2 is C minor: {0, 3, 7}
                       (i/or (i/= v1 0) (i/= v1 3) (i/= v1 7))
