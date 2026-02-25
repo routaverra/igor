@@ -74,6 +74,8 @@
 (def union terms.set/union)
 (def subset? terms.set/subset?)
 (def superset? terms.set/superset?)
+(def set< terms.set/set<)
+(def set<= terms.set/set<=)
 (def forall terms.introduced/forall)
 (def for-set terms.introduced/for-set)
 (def digraph graph/digraph)

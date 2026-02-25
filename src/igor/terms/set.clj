@@ -65,6 +65,28 @@
   (validate [self] (api/validate-domains self))
   (translate [self] (api/translate-nary-operation "superset" (map protocols/translate (:argv self)))))
 
+(defrecord TermSetLt [argv]
+  protocols/IExpress
+  (write [_self] (apply list 'set-lt (map protocols/write argv)))
+  (codomain [self] {types/Bool self})
+  (domainv [self] (repeat {types/Set self}))
+  (decisions [self] (api/unify-argv-decisions self))
+  (bindings [self] (api/unify-argv-bindings self))
+  (validate [self] (api/validate-domains self))
+  (translate [self] (str "set_lt(" (protocols/translate (first (:argv self)))
+                         ", " (protocols/translate (second (:argv self))) ")")))
+
+(defrecord TermSetLe [argv]
+  protocols/IExpress
+  (write [_self] (apply list 'set-le (map protocols/write argv)))
+  (codomain [self] {types/Bool self})
+  (domainv [self] (repeat {types/Set self}))
+  (decisions [self] (api/unify-argv-decisions self))
+  (bindings [self] (api/unify-argv-bindings self))
+  (validate [self] (api/validate-domains self))
+  (translate [self] (str "set_le(" (protocols/translate (first (:argv self)))
+                         ", " (protocols/translate (second (:argv self))) ")")))
+
 ;; --- Constructor functions ---
 
 (defn- all-ground-sets? [args] (every? set? args))
@@ -93,3 +115,27 @@
   (if (all-ground-sets? args)
     (every? true? (map (fn [[a b]] (set/superset? a b)) (partition 2 1 args)))
     (api/cacheing-validate (->TermSuperset (vec args)))))
+
+(defn- set-lex-compare
+  "Lexicographic comparison on sorted element sequences.
+   Returns neg/zero/pos like compare."
+  [a b]
+  (let [sa (sort a) sb (sort b)]
+    (loop [[x & xs] sa [y & ys] sb]
+      (cond
+        (and (nil? x) (nil? y)) 0
+        (nil? x) -1
+        (nil? y)  1
+        (< x y)  -1
+        (> x y)   1
+        :else (recur xs ys)))))
+
+(defn set< [a b]
+  (if (all-ground-sets? [a b])
+    (neg? (set-lex-compare a b))
+    (api/cacheing-validate (->TermSetLt [a b]))))
+
+(defn set<= [a b]
+  (if (all-ground-sets? [a b])
+    (<= (set-lex-compare a b) 0)
+    (api/cacheing-validate (->TermSetLe [a b]))))
