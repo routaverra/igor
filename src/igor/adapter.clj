@@ -41,8 +41,8 @@
                 out-reader (BufferedReader. (InputStreamReader. stdout))
                 stderr (.getErrorStream proc)
                 err-writer (StringWriter.)]
-      (doall (for [line (line-seq out-reader)]
-               (async/go (async/>! chan line))))
+      (doseq [line (line-seq out-reader)]
+        (async/>!! chan line))
       (clojure.java.io/copy stderr err-writer)
       (let [exit (.waitFor proc)
             error (.toString err-writer)]
