@@ -989,8 +989,9 @@
 
    Options:
      :format - :latex (default) or :unicode
-     :objective - if provided, renders as a maximize problem"
-  [expr & {:keys [format objective] :or {format :latex}}]
+     :objective - if provided, renders as an optimization problem
+     :direction - :maximize (default) or :minimize"
+  [expr & {:keys [format objective direction] :or {format :latex}}]
   (let [definitions (collect-definitions expr)
         obj-defs (when objective (collect-definitions objective))
         all-defs (merge definitions obj-defs)
@@ -1020,11 +1021,12 @@
                           (render-definition name (get real-defs name) env))
                         sorted-names)
         constraint-str (render-subtree expr env)
+        dir-name (name (or direction :maximize))
         problem-line (if objective
                        (let [obj-str (render-subtree objective env)]
                          (case format
-                           :latex (str "\\text{maximize } " obj-str " \\text{ subject to } " constraint-str)
-                           :unicode (str "maximize " obj-str " subject to " constraint-str)))
+                           :latex (str "\\text{" dir-name " } " obj-str " \\text{ subject to } " constraint-str)
+                           :unicode (str dir-name " " obj-str " subject to " constraint-str)))
                        (case format
                          :latex (str "\\text{satisfy}(" constraint-str ")")
                          :unicode (str "satisfy(" constraint-str ")")))]

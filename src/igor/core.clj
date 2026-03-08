@@ -31,6 +31,12 @@
   ([obj constraint opts]
    (solver/solve opts constraint obj)))
 
+(defn minimize
+  ([obj constraint]
+   (minimize obj constraint {}))
+  ([obj constraint opts]
+   (solver/solve (assoc opts :direction :minimize) constraint obj)))
+
 (defn dithered? [x]
   (boolean (api/cacheing-decisions x)))
 

@@ -107,12 +107,13 @@
 
 (def ^:dynamic *flatten?* true)
 
-(defn solve [{:keys [all? async?] :as opts}
+(defn solve [{:keys [all? async? direction] :as opts}
              constraint
              objective]
   {:pre [(some? constraint)
          (contains? (protocols/codomain constraint) types/Bool)
-         (or (nil? objective) (contains? (protocols/codomain objective) types/Numeric))]}
+         (or (nil? objective) (contains? (protocols/codomain objective) types/Numeric))
+         (or (nil? direction) (#{:maximize :minimize} direction))]}
   (let [model-decisions (api/merge-with-key
                          api/intersect-domains
                          (api/cacheing-decisions constraint)
@@ -137,8 +138,9 @@
                                (flattener/conjuctive-flattening objective)
                                [objective]))
         directive-str (if objective
-                        (>> {:e (protocols/translate obj)}
-                            "solve maximize {{e}};")
+                        (>> {:e (protocols/translate obj)
+                             :d (name (or direction :maximize))}
+                            "solve {{d}} {{e}};")
                         "solve satisfy;")
         constraints (if *flatten?*
                       (concat (flattener/conjuctive-flattening constraint-with-forced-decisions-and-expanded-terms)

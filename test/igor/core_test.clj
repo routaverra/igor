@@ -31,3 +31,25 @@
              (only-val
               (i/satisfy
                (i/= (i/bind (range 101) x) 42))))))))
+
+(deftest minimize-basic-test
+  (testing "minimize finds the minimum value"
+    (let [x (i/fresh-int (range 1 11))
+          solution (i/minimize x (i/>= x 0))]
+      (is (= 1 (get solution x))))))
+
+(deftest minimize-equivalence-test
+  (testing "minimize gives same result as maximize-negated"
+    (let [x (i/fresh-int (range 1 11))
+          y (i/fresh-int (range 1 11))
+          constraint (i/<= (i/+ x y) 15)
+          sol-min (i/minimize (i/+ x y) constraint)
+          sol-neg (i/maximize (i/- 0 (i/+ x y)) constraint)]
+      (is (= (clojure.core/+ (get sol-min x) (get sol-min y))
+             (clojure.core/+ (get sol-neg x) (get sol-neg y)))))))
+
+(deftest maximize-unchanged-test
+  (testing "maximize still works correctly"
+    (let [x (i/fresh-int (range 1 11))
+          solution (i/maximize x (i/>= x 0))]
+      (is (= 10 (get solution x))))))
