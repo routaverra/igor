@@ -274,9 +274,9 @@
 ;; ============================================================
 
 (deftest quantifier-iterator-names-test
-  (testing "forall uses conventional iterator names (i, j, k...)"
+  (testing "every? uses conventional iterator names (i, j, k...)"
     (let [result (notation/render-notation
-                  (i/forall #{1 2 3} (fn [k] (i/> k 0)))
+                  (i/every? #{1 2 3} (fn [k] (i/> k 0)))
                   :format :latex)]
       ;; Should use "i" (first iterator name), not a gensym
       (is (str/includes? result "\\forall i"))

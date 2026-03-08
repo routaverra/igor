@@ -225,12 +225,12 @@
 ;; 6. Quantifier-heavy problems
 ;; ============================================================
 
-(deftest forall-all-elements-divisible-test
-  (testing "forall: every element in set divisible by 3"
+(deftest every?-all-elements-divisible-test
+  (testing "every?: every element in set divisible by 3"
     (let [s (i/fresh-set (range 30))
           constraint (i/and
                       (i/= (i/count s) 4)
-                      (i/forall (i/bind (range 30) s)
+                      (i/every? (i/bind (range 30) s)
                         (fn [elem]
                           (i/= 0 (i/mod elem 3)))))
           solution (i/satisfy constraint)
@@ -238,15 +238,15 @@
       (is (= 4 (count s*)))
       (is (every? #(zero? (mod % 3)) s*)))))
 
-(deftest for-set-image-test
-  (testing "for-set: compute image of a function over a set"
+(deftest image-test
+  (testing "image: compute image of a function over a set"
     (let [s (i/fresh-set (range 10))
-          ;; image = {x+1 : x in s}
-          image (i/for-set (i/bind (range 10) s)
-                  (fn [x] (i/+ x 1)))
+          ;; img = {x+1 : x in s}
+          img (i/image (i/bind (range 10) s)
+                (fn [x] (i/+ x 1)))
           constraint (i/and
                       (i/= s #{2 4 6})
-                      (i/= #{3 5 7} image))
+                      (i/= #{3 5 7} img))
           solution (i/satisfy constraint)]
       (is (= #{2 4 6} (get solution s))))))
 

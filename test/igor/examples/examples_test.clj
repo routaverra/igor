@@ -6,7 +6,7 @@
   (testing "meso chain constraint integration test"
     (let [mesos (take 5 (repeatedly i/fresh))
           cluster-free (fn [set-decision]
-                         (i/forall (i/bind (range 12) set-decision)
+                         (i/every? (i/bind (range 12) set-decision)
                            (fn [a]
                              (i/when (i/contains? set-decision (i/mod (i/+ a 1) 12))
                                (i/not (i/contains? set-decision (i/mod (i/+ a 2) 12)))))))

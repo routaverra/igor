@@ -144,21 +144,21 @@
       (is (true? (protocols/evaluate term {x 2 y 1 z 2})))
       (is (false? (protocols/evaluate term {x 1 y 2 z 1}))))))
 
-(deftest forall-evaluate-test
-  (testing "forall quantifier"
+(deftest every?-evaluate-test
+  (testing "every? quantifier"
     (let [x (api/fresh-int (range 10))
-          ;; forall i in {0..4}: x > i means x > 4, i.e., x >= 5
-          term (i/forall (sorted-set 0 1 2 3 4)
+          ;; every? i in {0..4}: x > i means x > 4, i.e., x >= 5
+          term (i/every? (sorted-set 0 1 2 3 4)
                          (fn [i] (i/> x i)))]
       (is (true? (protocols/evaluate term {x 5})))
       (is (false? (protocols/evaluate term {x 3}))))))
 
-(deftest for-set-evaluate-test
-  (testing "for-set generator"
+(deftest image-evaluate-test
+  (testing "image generator"
     (let [x (api/fresh-int (range 10))
           ;; {i + x | i in {0,1,2}} with x=10 => {10, 11, 12}
-          term (i/for-set (sorted-set 0 1 2)
-                          (fn [i] (i/+ i x)))]
+          term (i/image (sorted-set 0 1 2)
+                        (fn [i] (i/+ i x)))]
       (is (= #{10 11 12} (protocols/evaluate term {x 10}))))))
 
 (deftest as-evaluate-test

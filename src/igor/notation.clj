@@ -506,13 +506,13 @@
        ", \\mathcal{A})"))
 
 ;; --- Quantifiers ---
-(defmethod render-node [igor.terms.introduced.TermForAll :latex] [node env]
+(defmethod render-node [igor.terms.introduced.TermEvery? :latex] [node env]
   (let [[local-decision set-expr constraint-expr] (:argv node)]
     (str "\\forall " (render-subtree local-decision env)
          " \\in " (render-subtree set-expr env)
          " : " (render-subtree constraint-expr env))))
 
-(defmethod render-node [igor.terms.introduced.TermForSet :latex] [node env]
+(defmethod render-node [igor.terms.introduced.TermImage :latex] [node env]
   (let [[local-decision set-expr generator-expr] (:argv node)]
     (str "\\{ " (render-subtree generator-expr env)
          " \\mid " (render-subtree local-decision env)
@@ -761,13 +761,13 @@
   (str "costRegular(x\u20D7, " (render-subtree (:cost node) env) ", \uD835\uDC9C)"))
 
 ;; --- Quantifiers ---
-(defmethod render-node [igor.terms.introduced.TermForAll :unicode] [node env]
+(defmethod render-node [igor.terms.introduced.TermEvery? :unicode] [node env]
   (let [[local-decision set-expr constraint-expr] (:argv node)]
     (str "\u2200 " (render-subtree local-decision env)
          " \u2208 " (render-subtree set-expr env)
          " : " (render-subtree constraint-expr env))))
 
-(defmethod render-node [igor.terms.introduced.TermForSet :unicode] [node env]
+(defmethod render-node [igor.terms.introduced.TermImage :unicode] [node env]
   (let [[local-decision set-expr generator-expr] (:argv node)]
     (str "{ " (render-subtree generator-expr env)
          " | " (render-subtree local-decision env)

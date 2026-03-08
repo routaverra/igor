@@ -1,14 +1,15 @@
 (ns igor.terms.introduced
+  (:refer-clojure :exclude [every?])
   (:require [igor.protocols :as protocols]
             [igor.types :as types]
             [igor.utils.string :refer [>>]]
             [igor.api :as api]))
 
-(defrecord TermForAll [bind-sym argv]
+(defrecord TermEvery? [bind-sym argv]
   protocols/IExpress
   (write [_self] (let [[local-decision set-expr constraint-expr] argv]
                    (list
-                    'forall
+                    'every?
                     [bind-sym
                      (protocols/write set-expr)]
                     (clojure.walk/postwalk
@@ -33,15 +34,15 @@
   (evaluate [self solution]
     (let [[local-decision set-expr constraint-expr] argv
           s (api/eval-arg set-expr solution)]
-      (every? (fn [elem]
+      (clojure.core/every? (fn [elem]
                 (api/eval-arg constraint-expr (assoc solution local-decision elem)))
               s))))
 
-(defrecord TermForSet [bind-sym argv]
+(defrecord TermImage [bind-sym argv]
   protocols/IExpress
   (write [_self] (let [[local-decision set-expr generator-expr] argv]
                    (list
-                    'for-set
+                    'image
                     [bind-sym
                      (protocols/write set-expr)]
                     (clojure.walk/postwalk
@@ -77,14 +78,14 @@
   ([] (fresh (str (gensym))))
   ([id] (api/->Decision id)))
 
-(defn forall [set-expr constraint-fn]
+(defn every? [set-expr constraint-fn]
   (let [local-decision (api/lexical (fresh))]
     (api/cacheing-validate
-     (->TermForAll (:id local-decision)
+     (->TermEvery? (:id local-decision)
                    [local-decision set-expr (constraint-fn local-decision)]))))
 
-(defn for-set [set-expr generator-fn]
+(defn image [set-expr generator-fn]
   (let [local-decision (api/lexical (fresh))]
     (api/cacheing-validate
-     (->TermForSet (:id local-decision)
-                   [local-decision set-expr (generator-fn local-decision)]))))
+     (->TermImage (:id local-decision)
+                  [local-decision set-expr (generator-fn local-decision)]))))

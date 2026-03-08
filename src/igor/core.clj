@@ -1,7 +1,8 @@
 (ns igor.core
   (:refer-clojure :exclude [+ - * / = > < >= <= and or not when if cond
                              mod rem inc dec even? odd? pos? neg? zero?
-                             true? false? not= contains? count max min nth abs])
+                             true? false? not= contains? count max min nth abs
+                             every?])
   (:require [igor.api :as api]
             [igor.protocols :as protocols]
             [igor.solver :as solver]
@@ -77,8 +78,8 @@
 (def superset? terms.set/superset?)
 (def set< terms.set/set<)
 (def set<= terms.set/set<=)
-(def forall terms.introduced/forall)
-(def for-set terms.introduced/for-set)
+(def every? terms.introduced/every?)
+(def image terms.introduced/image)
 (def digraph graph/digraph)
 (def active-nodes graph/active-nodes)
 (def active-edges graph/active-edges)
