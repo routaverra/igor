@@ -6,6 +6,14 @@ Constraint programming for Clojure, backed by [MiniZinc](https://www.minizinc.or
 
 You declare variables, state what must be true about them, and a solver finds values that satisfy all constraints simultaneously. Igor compiles your constraints to MiniZinc and hands them to industrial solvers (Gecode, OR-Tools, etc.); solutions come back as Clojure maps.
 
+## Installation
+
+Add to your `deps.edn`:
+
+```clojure
+io.github.routaverra/igor {:git/sha "6b4d550cdc6c3b58f6d62938797dbe831e3fa684"}
+```
+
 ## Requirements
 
 - Clojure
