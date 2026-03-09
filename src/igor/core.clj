@@ -25,6 +25,12 @@
   ([term opts]
    (solver/solve opts term nil)))
 
+(defn satisfy-all
+  ([term]
+   (satisfy-all term {}))
+  ([term opts]
+   (solver/solve (assoc opts :all? true) term nil)))
+
 (defn maximize
   ([obj constraint]
    (maximize obj constraint {}))
