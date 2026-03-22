@@ -78,6 +78,8 @@ All solving functions accept an options map with `{:async? true}` to return a `c
 (i/validate-solution constraint solution)  ; => true/false
 ```
 
+The examples below use `solve`, a convenience that calls `satisfy` and then walks a form replacing every decision variable with its solved value — so `(i/solve constraint [x y])` returns e.g. `[3 7]` directly.
+
 ## Composability
 
 Constraints are plain Clojure data. You compose them with ordinary functions — `map`, `apply`, `partition`, closures — the same patterns you already use.
@@ -91,9 +93,9 @@ Any function that returns a constraint expression works with `map`, `apply`, and
   (i/> (nth vars k) k))
 
 (let [n    5
-      vars (vec (repeatedly n #(i/fresh-int (range 20))))
-      sol  (i/satisfy (apply i/and (map #(exceeds-index vars %) (range n))))]
-  (mapv sol vars))
+      vars (vec (repeatedly n #(i/fresh-int (range 20))))]
+  (i/solve (apply i/and (map #(exceeds-index vars %) (range n)))
+           vars))
 ;; => e.g. [1 2 3 4 5] — each value exceeds its index
 ```
 
@@ -110,10 +112,10 @@ Pass constraint-producing functions to higher-order combinators the same way you
 Enforce "strictly increasing" and "gaps ≤ 3" on the same variables:
 
 ```clojure
-(let [vars (vec (repeatedly 5 #(i/fresh-int (range 20))))
-      sol  (i/satisfy (i/and (pairwise i/< vars)
-                             (pairwise (fn [a b] (i/<= (i/- b a) 3)) vars)))]
-  (mapv sol vars))
+(let [vars (vec (repeatedly 5 #(i/fresh-int (range 20))))]
+  (i/solve (i/and (pairwise i/< vars)
+                  (pairwise (fn [a b] (i/<= (i/- b a) 3)) vars))
+           vars))
 ;; => e.g. [0 1 2 3 4]
 ```
 
@@ -132,10 +134,10 @@ Split a problem into independent constraint functions, then assemble them at the
                    (apply i/all-different col)))))
 
 (let [grid (vec (for [_ (range 4)]
-                  (vec (repeatedly 4 #(i/fresh-int (range 1 5))))))
-      sol  (i/satisfy (i/and (row-constraints grid)
-                             (col-constraints grid)))]
-  (mapv (fn [row] (mapv sol row)) grid))
+                  (vec (repeatedly 4 #(i/fresh-int (range 1 5))))))]
+  (i/solve (i/and (row-constraints grid)
+                  (col-constraints grid))
+           grid))
 ;; => a valid 4×4 Latin square
 ```
 
@@ -155,13 +157,12 @@ Each letter stands for a different digit (0–9). The goal: find the unique digi
       ;; Build the place-value numbers from their digits
       send  (i/+ (i/* s 1000) (i/* e 100) (i/* n 10) d*)
       more  (i/+ (i/* m 1000) (i/* o 100) (i/* r 10) e)
-      money (i/+ (i/* m 10000) (i/* o 1000) (i/* n 100) (i/* e 10) y)
-      solution (i/satisfy
-                (i/and (apply i/all-different [s e n d* m o r y])
-                       (i/= (i/+ send more) money)
-                       (i/> s 0)
-                       (i/> m 0)))]
-  (mapv solution [s e n d* m o r y]))
+      money (i/+ (i/* m 10000) (i/* o 1000) (i/* n 100) (i/* e 10) y)]
+  (i/solve (i/and (apply i/all-different [s e n d* m o r y])
+                  (i/= (i/+ send more) money)
+                  (i/> s 0)
+                  (i/> m 0))
+           [s e n d* m o r y]))
 ;; => [9 5 6 7 1 0 8 2]  — i.e. 9567 + 1085 = 10652
 ```
 
@@ -206,9 +207,8 @@ You define a graph as an edge list, then apply structural constraints — paths,
 (let [x (i/fresh-int (range 10))
       y (i/fresh-int (range 10))
       z (i/fresh-int (range 10))
-      allowed [[1 2 3] [4 5 6] [7 8 9]]
-      sol (i/satisfy (i/table [x y z] allowed))]
-  [(sol x) (sol y) (sol z)])
+      allowed [[1 2 3] [4 5 6] [7 8 9]]]
+  (i/solve (i/table [x y z] allowed) [x y z]))
 ;; => one of [1 2 3], [4 5 6], or [7 8 9]
 ```
 
@@ -224,9 +224,8 @@ You define a graph as an edge list, then apply structural constraints — paths,
                           {0 0, 1 1}]   ; from state 1: same
             :start       0
             :accept      #{1}}          ; only state 1 is accepting
-      vars (vec (repeatedly 4 #(i/fresh-int #{0 1})))
-      sol  (i/satisfy (i/regular vars dfa))]
-  (mapv sol vars))
+      vars (vec (repeatedly 4 #(i/fresh-int #{0 1})))]
+  (i/solve (i/regular vars dfa) vars))
 ;; => e.g. [0 1 0 1]  — last element is always 1
 ```
 
@@ -421,6 +420,7 @@ All nodes are 0-indexed.
 | Function | Description |
 |----------|-------------|
 | `satisfy` | `(satisfy constraint)` — one solution |
+| `solve` | `(solve constraint form)` — like `satisfy`, but walks `form` replacing decisions with their solved values |
 | `satisfy-all` | `(satisfy-all constraint)` — all solutions |
 | `maximize` | `(maximize objective constraint)` |
 | `minimize` | `(minimize objective constraint)` |

@@ -53,9 +53,9 @@
                 (i/= magic-sum (i/+ c f k))
                 (i/= magic-sum (i/+ a e k))
                 (i/= magic-sum (i/+ c e g)))
-          solution (i/satisfy (i/and (apply i/all-different cells) sums))
-          vals* (mapv solution cells)
-          ms (get solution magic-sum)]
+          {:keys [vals* ms]}
+          (i/solve (i/and (apply i/all-different cells) sums)
+                          {:vals* cells :ms magic-sum})]
       ;; magic constant for 3x3 is always 15
       (is (= 15 ms))
       ;; all values distinct and in 1-9
@@ -153,8 +153,7 @@
                             (i/not= (i/+ (nth queens i) di) (nth queens j))
                             (i/not= (i/- (nth queens i) di) (nth queens j))))
                          (apply i/and))
-          solution (i/satisfy (i/and col-diff diag-diff))
-          cols (mapv solution queens)]
+          cols (i/solve (i/and col-diff diag-diff) queens)]
       ;; verify: all columns distinct
       (is (= n (count (distinct cols))))
       ;; verify: no diagonal attacks
@@ -259,37 +258,40 @@
     ;; x + y = 10, x - y = 2  => x=6, y=4
     (let [x (i/fresh-int (range 101))
           y (i/fresh-int (range 101))
-          solution (i/satisfy
+          [x* y*] (i/solve
                     (i/and
                      (i/= (i/+ x y) 10)
-                     (i/= (i/- x y) 2)))]
-      (is (= 6 (get solution x)))
-      (is (= 4 (get solution y))))))
+                     (i/= (i/- x y) 2))
+                    [x y])]
+      (is (= 6 x*))
+      (is (= 4 y*)))))
 
 (deftest transitive-equality-test
   (testing "equality chains propagate: a=b, b=c => a=c"
     (let [a (i/fresh-int (range 101))
           b (i/fresh-int (range 101))
           c (i/fresh-int (range 101))
-          solution (i/satisfy
-                    (i/and
-                     (i/= a 42)
-                     (i/= a b)
-                     (i/= b c)))]
-      (is (= 42 (get solution a)))
-      (is (= 42 (get solution b)))
-      (is (= 42 (get solution c))))))
+          [a* b* c*] (i/solve
+                      (i/and
+                       (i/= a 42)
+                       (i/= a b)
+                       (i/= b c))
+                      [a b c])]
+      (is (= 42 a*))
+      (is (= 42 b*))
+      (is (= 42 c*)))))
 
 (deftest abs-value-test
   (testing "absolute value via i/abs"
     (let [x (i/fresh-int (range -100 101))
           abs-x (i/fresh-int (range 101))
-          solution (i/satisfy
-                    (i/and
-                     (i/= x -7)
-                     (i/= abs-x (i/abs x))))]
-      (is (= -7 (get solution x)))
-      (is (= 7 (get solution abs-x))))))
+          [x* abs-x*] (i/solve
+                       (i/and
+                        (i/= x -7)
+                        (i/= abs-x (i/abs x)))
+                       [x abs-x])]
+      (is (= -7 x*))
+      (is (= 7 abs-x*)))))
 
 ;; ============================================================
 ;; 8. Bounded search with multiple constraints
@@ -328,8 +330,7 @@
                       (i/or (i/= a 1) (i/= b 1))
                       (i/or (i/= a 0) (i/= c 1))
                       (i/or (i/= b 0) (i/= c 0)))
-          solution (i/satisfy constraint)
-          a* (get solution a) b* (get solution b) c* (get solution c)]
+          [a* b* c*] (i/solve constraint [a b c])]
       ;; verify all clauses
       (is (or (= 1 a*) (= 1 b*)))
       (is (or (= 0 a*) (= 1 c*)))
@@ -363,9 +364,9 @@
                                (i/nth (vec succ) (nth pos k)))))
           ;; succ[last node in tour] must be 0 (return to start)
           return-to-start (i/= (i/nth (vec succ) (nth pos (dec n))) 0)
-          solution (i/satisfy (i/and (apply i/all-different succ) no-self chain return-to-start (apply i/all-different pos)))
-          succ* (mapv solution succ)
-          pos* (mapv solution pos)]
+          {:keys [succ* pos*]}
+          (i/solve (i/and (apply i/all-different succ) no-self chain return-to-start (apply i/all-different pos))
+                          {:succ* succ :pos* pos})]
       ;; Verify: all successors are distinct
       (is (= n (count (distinct succ*))))
       ;; Verify: following the cycle from 0 visits all nodes
@@ -475,8 +476,7 @@
           edge-constraints (->> edges
                                 (map (fn [[u v]] (i/not= (nth colors u) (nth colors v))))
                                 (apply i/and))
-          solution (i/satisfy edge-constraints)
-          colors* (mapv solution colors)]
+          colors* (i/solve edge-constraints colors)]
       ;; Verify no adjacent pair shares a color
       (is (every? (fn [[u v]] (not= (nth colors* u) (nth colors* v))) edges))
       ;; All colors in valid range
@@ -541,11 +541,10 @@
                                       (for [k (range n)]
                                         (i/<= (nth finish-vars k)
                                                (i/nth (vec deadlines) (nth job-at k)))))
-          solution (i/satisfy (i/and (apply i/all-different pos) job-at-diff inverse-link
-                                     finish-0 finish-chain deadline-constraints))
-          pos* (mapv solution pos)
-          job-at* (mapv solution job-at)
-          finish* (mapv solution finish-vars)]
+          {:keys [pos* job-at* finish*]}
+          (i/solve (i/and (apply i/all-different pos) job-at-diff inverse-link
+                                 finish-0 finish-chain deadline-constraints)
+                          {:pos* pos :job-at* job-at :finish* finish-vars})]
       ;; Verify all positions distinct
       (is (= n (count (distinct pos*))))
       ;; Verify each job finishes by its deadline
@@ -610,10 +609,7 @@
           ;; column constraints: all different in each column
           col-diff (apply i/and (for [c (range n)]
                                   (apply i/all-different (for [r (range n)] (get-in cells [r c])))))
-          solution (i/satisfy (i/and row-diff col-diff))
-          grid (vec (for [r (range n)]
-                      (vec (for [c (range n)]
-                             (get solution (get-in cells [r c]))))))]
+          grid (i/solve (i/and row-diff col-diff) cells)]
       ;; Each row has all values 1-4
       (doseq [r (range n)]
         (is (= (set val-domain) (set (nth grid r)))))
@@ -632,8 +628,7 @@
           involution (->> (for [i (range n)]
                             (i/= (i/nth p (nth p i)) i))
                           (apply i/and))
-          solution (i/satisfy (i/and (apply i/all-different p) involution))
-          p* (mapv solution p)]
+          p* (i/solve (i/and (apply i/all-different p) involution) p)]
       ;; Verify it's a permutation
       (is (= (set (range n)) (set p*)))
       ;; Verify p[p[i]] = i
@@ -673,8 +668,7 @@
                                   0)))
                         capacity))
                (apply i/and))
-          solution (i/satisfy capacity-constraints)
-          bins* (mapv solution bins)]
+          bins* (i/solve capacity-constraints bins)]
       ;; Verify capacity constraint for each bin
       (doseq [b (range n-bins)]
         (let [bin-total (->> (range n-items)
@@ -759,10 +753,8 @@
                          (i/not (i/and w-moved g-moved))
                          (i/not (i/and w-moved c-moved))
                          (i/not (i/and g-moved c-moved))))))))
-          solution (i/satisfy (i/and init final-state safety transitions))
-          result (vec (for [t (range (inc max-steps))]
-                        (vec (for [e (range 4)]
-                               (get solution (get-in state [t e]))))))]
+          result (i/solve (i/and init final-state safety transitions)
+                                state)]
       ;; Verify initial state
       (is (= [0 0 0 0] (first result)))
       ;; Verify final state

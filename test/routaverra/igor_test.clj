@@ -54,24 +54,24 @@
           solution (i/maximize x (i/>= x 0))]
       (is (= 10 (get solution x))))))
 
-(deftest satisfy-data-test
+(deftest solve-test
   (let [x (i/fresh-int (range 10))
         y (i/fresh-int (range 10))
         constraint (i/and (i/= x 3) (i/= y 7))]
     (testing "flat vector"
-      (is (= [3 7] (i/satisfy-data constraint [x y]))))
+      (is (= [3 7] (i/solve constraint [x y]))))
     (testing "nested structure"
       (is (= {:vals [3 7] :label "test"}
-             (i/satisfy-data constraint {:vals [x y] :label "test"}))))))
+             (i/solve constraint {:vals [x y] :label "test"}))))))
 
-(deftest satisfy-data-unsatisfiable-test
+(deftest solve-unsatisfiable-test
   (let [x (i/fresh-int #{1 2 3})]
-    (is (nil? (i/satisfy-data (i/and (i/> x 5) (i/< x 0)) [x])))))
+    (is (nil? (i/solve (i/and (i/> x 5) (i/< x 0)) [x])))))
 
-(deftest satisfy-data-passthrough-test
+(deftest solve-passthrough-test
   (testing "unconstrained decisions pass through"
     (let [x (i/fresh-int (range 10))
           orphan (i/fresh-int (range 10))
-          result (i/satisfy-data (i/= x 5) [x orphan])]
+          result (i/solve (i/= x 5) [x orphan])]
       (is (= 5 (first result)))
       (is (i/dithered? (second result))))))

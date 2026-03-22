@@ -32,17 +32,17 @@
   ([term opts]
    (solver/solve (assoc opts :all? true) term nil)))
 
-(defn satisfy-data
-  ([constraint data]
-   (satisfy-data constraint data {}))
-  ([constraint data opts]
-   (when-let [solution (satisfy constraint opts)]
-     (walk/postwalk
-      (fn [x]
-        (if (api/decision? x)
-          (get solution x x)
-          x))
-      data))))
+(defn solve
+  "Satisfies the constraint and walks form, replacing every decision
+   variable with its solved value. Returns nil when unsatisfiable."
+  [constraint form]
+  (when-let [solution (satisfy constraint)]
+    (walk/postwalk
+     (fn [x]
+       (if (api/decision? x)
+         (get solution x x)
+         x))
+     form)))
 
 (defn maximize
   ([obj constraint]

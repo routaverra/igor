@@ -13,10 +13,9 @@
           x3 (i/fresh-int (range 10))
           allowed [[1 2 3] [4 5 6] [7 8 9]]
           constraint (i/table [x1 x2 x3] allowed)
-          solution (i/satisfy constraint)]
-      (is (some? solution))
-      (let [result [(get solution x1) (get solution x2) (get solution x3)]]
-        (is (some #{result} allowed))))))
+          result (i/solve constraint [x1 x2 x3])]
+      (is (some? result))
+      (is (some #{result} allowed)))))
 
 (deftest table-ground-passthrough-test
   (testing "table with ground vars returns boolean directly"
@@ -151,14 +150,14 @@
           constraints (for [idx (range 3)]
                         (i/table [(vars idx) (vars (inc idx))] progressions))
           ;; start on I (0)
-          solution (i/satisfy (apply i/and (i/= (first vars) 0) constraints))]
-      (is (some? solution))
-      (let [vals (mapv #(get solution %) vars)]
-        ;; first chord is I
-        (is (= 0 (first vals)))
-        ;; each adjacent pair is in the allowed set
-        (doseq [idx (range 3)]
-          (is (some #{[(vals idx) (vals (inc idx))]} progressions)))))))
+          vals (i/solve (apply i/and (i/= (first vars) 0) constraints)
+                              vars)]
+      (is (some? vals))
+      ;; first chord is I
+      (is (= 0 (first vals)))
+      ;; each adjacent pair is in the allowed set
+      (doseq [idx (range 3)]
+        (is (some #{[(vals idx) (vals (inc idx))]} progressions))))))
 
 (deftest melodic-contour-regular-test
   (testing "melodic intervals constrained by regular DFA"
@@ -178,14 +177,13 @@
                :start       0
                :accept      #{0 1}}
           intervals (vec (repeatedly 6 #(i/fresh-int alphabet)))
-          solution (i/satisfy (i/regular intervals dfa))]
-      (is (some? solution))
+          vals (i/solve (i/regular intervals dfa) intervals)]
+      (is (some? vals))
       ;; verify the constraint: no three consecutive ascending intervals
-      (let [vals (mapv #(get solution %) intervals)]
-        (doseq [idx (range (- (count vals) 2))]
-          (is (not (and (asc (vals idx))
-                        (asc (vals (inc idx)))
-                        (asc (vals (+ idx 2)))))))))))
+      (doseq [idx (range (- (count vals) 2))]
+        (is (not (and (asc (vals idx))
+                      (asc (vals (inc idx)))
+                      (asc (vals (+ idx 2))))))))))
 
 ;; ============================================================
 ;; Full music example: arch-contour cantus firmus with florid
