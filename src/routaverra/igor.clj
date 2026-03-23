@@ -2,7 +2,7 @@
   (:refer-clojure :exclude [+ - * / = > < >= <= and or not when if cond
                              mod rem inc dec even? odd? pos? neg? zero?
                              true? false? not= contains? count max min nth abs
-                             every?])
+                             every? resolve])
   (:require [routaverra.igor.api :as api]
             [routaverra.igor.protocols :as protocols]
             [routaverra.igor.solver :as solver]
@@ -12,6 +12,7 @@
             [routaverra.igor.graph :as graph]
             [routaverra.igor.extensional :as extensional]
             [routaverra.igor.notation :as notation]
+            [routaverra.igor.alternatives :as alternatives]
             [clojure.walk :as walk]))
 
 (def fresh api/fresh)
@@ -32,17 +33,23 @@
   ([term opts]
    (solver/solve (assoc opts :all? true) term nil)))
 
+(defn resolve
+  "Walks form, replacing every decision variable with its solved value.
+   The 'second half' of solve — useful when you already have a solution."
+  [solution form]
+  (walk/postwalk
+    (fn [x]
+      (if (api/decision? x)
+        (get solution x x)
+        x))
+    form))
+
 (defn solve
   "Satisfies the constraint and walks form, replacing every decision
    variable with its solved value. Returns nil when unsatisfiable."
   [constraint form]
   (when-let [solution (satisfy constraint)]
-    (walk/postwalk
-     (fn [x]
-       (if (api/decision? x)
-         (get solution x x)
-         x))
-     form)))
+    (resolve solution form)))
 
 (defn maximize
   ([obj constraint]
@@ -137,3 +144,8 @@
    Returns true if the solution satisfies the constraint, false otherwise."
   [constraint solution]
   (protocols/evaluate constraint solution))
+
+;; --- Constructive disjunction ---
+
+(def alternatives alternatives/alternatives)
+(def chosen alternatives/chosen)
