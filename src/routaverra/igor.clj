@@ -34,14 +34,16 @@
    (solver/solve (assoc opts :all? true) term nil)))
 
 (defn resolve
-  "Walks form, replacing every decision variable with its solved value.
+  "Walks form, replacing decision variables with solved values and evaluating
+   igor term expressions to concrete results.
    The 'second half' of solve — useful when you already have a solution."
   [solution form]
   (walk/postwalk
     (fn [x]
-      (if (api/decision? x)
-        (get solution x x)
-        x))
+      (clojure.core/cond
+        (api/decision? x) (get solution x x)
+        (satisfies? protocols/IExpress x) (protocols/evaluate x solution)
+        :else x))
     form))
 
 (defn solve

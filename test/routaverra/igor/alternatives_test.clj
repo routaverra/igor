@@ -90,3 +90,29 @@
           resolved (i/resolve sol form)]
       (is (= 2 (:pitch resolved)))
       (is (= 5 (:vel (first (:nested resolved))))))))
+
+(deftest resolve-evaluates-term-expressions-test
+  (testing "i/resolve collapses igor terms to concrete values"
+    (let [x (i/fresh-int #{10 20 30})
+          sol (i/satisfy (i/= x 20))
+          form {:a (i/+ x 5)
+                :b (i/- x 3)
+                :c (i/* x 2)}
+          resolved (i/resolve sol form)]
+      (is (= 25 (:a resolved)))
+      (is (= 17 (:b resolved)))
+      (is (= 40 (:c resolved)))))
+  (testing "nested term expressions collapse fully"
+    (let [x (i/fresh-int #{1 2 3})
+          sol (i/satisfy (i/= x 2))
+          form {:val (i/+ (i/* x 10) 7)}
+          resolved (i/resolve sol form)]
+      (is (= 27 (:val resolved)))))
+  (testing "terms in vectors and nested maps"
+    (let [x (i/fresh-int #{5 10 15})
+          y (i/fresh-int #{1 2 3})
+          sol (i/satisfy (i/and (i/= x 10) (i/= y 2)))
+          form [(i/+ x y) {:inner (i/max x y)}]
+          resolved (i/resolve sol form)]
+      (is (= 12 (first resolved)))
+      (is (= 10 (:inner (second resolved)))))))
