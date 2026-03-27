@@ -8,11 +8,11 @@
           x (i/fresh-int domain)
           y (i/fresh-int domain)
           alt (i/alternatives (i/= x 1) (i/= y 5))
-          sol0 (i/satisfy (i/and alt (i/= (:choice alt) 0)))
-          sol1 (i/satisfy (i/and alt (i/= (:choice alt) 1)))]
-      (is (= 0 (i/chosen alt sol0)))
+          sol0 (i/satisfy (i/and alt (i/= (i/choice alt) 0)))
+          sol1 (i/satisfy (i/and alt (i/= (i/choice alt) 1)))]
+      (is (= 0 (get sol0 (i/choice alt))))
       (is (= 1 (i/resolve sol0 x)))
-      (is (= 1 (i/chosen alt sol1)))
+      (is (= 1 (get sol1 (i/choice alt))))
       (is (= 5 (i/resolve sol1 y))))))
 
 (deftest alternatives-free-choice-test
@@ -21,7 +21,7 @@
           y (i/fresh-int (set (range 1 11)))
           alt (i/alternatives (i/> x 8) (i/< y 3))
           sol (i/satisfy alt)
-          idx (i/chosen alt sol)]
+          idx (get sol (i/choice alt))]
       (is (#{0 1} idx))
       (if (= idx 0)
         (is (> (i/resolve sol x) 8))
@@ -35,7 +35,7 @@
           c (i/fresh-int domain)
           alt (i/alternatives (i/= a 1) (i/= b 5) (i/= c 9))]
       (doseq [k [0 1 2]]
-        (let [sol (i/satisfy (i/and alt (i/= (:choice alt) k)))]
+        (let [sol (i/satisfy (i/and alt (i/= (i/choice alt) k)))]
           (is (= (get [1 5 9] k)
                  (i/resolve sol (nth [a b c] k)))))))))
 
@@ -49,8 +49,8 @@
           alt1 (i/alternatives (i/>= x1 1) (i/>= x2 1))
           alt2 (i/alternatives (i/>= y1 1) (i/>= y2 1))
           sol (i/satisfy (i/and alt1 alt2
-                                (i/= (:choice alt1) 0)
-                                (i/= (:choice alt2) 0)
+                                (i/= (i/choice alt1) 0)
+                                (i/= (i/choice alt2) 0)
                                 (i/= (i/+ x1 y1) 7)))]
       (is (= 7 (clojure.core/+ (i/resolve sol x1)
                                 (i/resolve sol y1)))))))
@@ -64,8 +64,8 @@
           inner (i/alternatives (i/= a 3) (i/= b 7))
           outer (i/alternatives inner (i/= c 1))
           sol (i/satisfy (i/and outer
-                                (i/= (:choice outer) 0)
-                                (i/= (:choice inner) 1)))]
+                                (i/= (i/choice outer) 0)
+                                (i/= (i/choice inner) 1)))]
       (is (= 7 (i/resolve sol b))))))
 
 (deftest alternatives-as-direct-constraint-test
@@ -74,7 +74,7 @@
           y (i/fresh-int #{4 5 6})
           alt (i/alternatives (i/= x 2) (i/= y 5))
           sol (i/satisfy alt)
-          idx (i/chosen alt sol)]
+          idx (get sol (i/choice alt))]
       (is (some? sol))
       (if (= idx 0)
         (is (= 2 (i/resolve sol x)))

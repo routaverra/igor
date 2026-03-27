@@ -295,7 +295,7 @@ In the tables below, `T` denotes a polymorphic type and `*` denotes variadic (tw
 | `/` | Integer division | Numeric* | Numeric | `clojure.core` |
 | `inc` | Increment by 1 | Numeric | Numeric | `clojure.core` |
 | `dec` | Decrement by 1 | Numeric | Numeric | `clojure.core` |
-| `abs` | Absolute value | Numeric | Numeric | — |
+| `abs` | Absolute value | Numeric | Numeric | `clojure.core` |
 | `pow` | Exponentiation | Numeric, Numeric | Numeric | — |
 | `max` | Maximum | Numeric* | Numeric | `clojure.core` |
 | `min` | Minimum | Numeric* | Numeric | `clojure.core` |
@@ -365,6 +365,32 @@ In the tables below, `T` denotes a polymorphic type and `*` denotes variadic (tw
 | `set<` | Strict lexicographic ordering | Set, Set | Bool | — |
 | `set<=` | Lexicographic ordering | Set, Set | Bool | — |
 | `image` | `(image set-expr (fn [elem] expr))` — set comprehension: `{f(x) \| x ∈ S}` | Set, (Numeric -> Numeric) | Set | — |
+
+### Alternatives
+
+`if` and `cond` select between *values*. `alternatives` selects between *constraint branches* — the solver picks exactly one branch to satisfy, and you can find out which one was chosen after solving. This is useful when each branch carries associated data (different variable sets, metadata, etc.) that you need to index into based on the solver's choice.
+
+| Function | Description | Input | Output | Shadows |
+|----------|-------------|-------|--------|---------|
+| `alternatives` | `(alternatives & constraints)` — returns a handle that is both a constraint and a choice extractor | Bool* | Handle | — |
+| `choice` | `(choice handle)` — the decision variable representing which branch was selected | Handle | Decision | — |
+
+The handle returned by `alternatives` is a constraint — pass it directly to `satisfy`, `and`, etc. `choice` returns the decision variable for the selected branch index. Use it to build expressions that depend on the selection, or resolve it against a solution to find out which branch was chosen:
+
+```clojure
+(let [x (i/fresh-int (range 100))
+      y (i/fresh-int (range 100))
+      ;; Two possible constraint regimes
+      alt (i/alternatives
+            (i/and (i/< x 10) (i/< y 10))     ;; branch 0: both small
+            (i/and (i/> x 90) (i/> y 90)))     ;; branch 1: both large
+      ;; Use the choice variable to condition other constraints
+      label (i/if (i/= (i/choice alt) 0) 1 2)
+      sol (i/satisfy (i/and alt (i/= label 2)))]
+  {:branch (get sol (i/choice alt))
+   :x (sol x) :y (sol y)})
+;; => {:branch 1, :x 91, :y 91}  — forced branch 1 via label constraint
+```
 
 ### Extensional Constraints
 
@@ -439,12 +465,15 @@ All nodes are 0-indexed.
 
 | Function | Description |
 |----------|-------------|
-| `satisfy` | `(satisfy constraint)` — one solution |
-| `solve` | `(solve constraint form)` — like `satisfy`, but walks `form` replacing decisions with their solved values |
+| `satisfy` | `(satisfy constraint)` — one solution as `{Decision -> value}` |
 | `satisfy-all` | `(satisfy-all constraint)` — all solutions |
-| `maximize` | `(maximize objective constraint)` |
-| `minimize` | `(minimize objective constraint)` |
+| `maximize` | `(maximize objective constraint)` — maximize objective |
+| `minimize` | `(minimize objective constraint)` — minimize objective |
+| `resolve` | `(resolve solution form)` — walks `form`, replacing decisions with solved values and evaluating igor expressions |
+| `solve` | `(solve constraint form)` — `satisfy` + `resolve` in one step; returns `nil` when unsatisfiable |
 | `validate-solution` | `(validate-solution constraint solution)` — pure-Clojure cross-check |
+| `decision?` | `(decision? x)` — true if `x` is a decision variable |
+| `unresolved?` | `(unresolved? x)` — true if `x` contains unsolved decision variables |
 
 ## Solver Options
 

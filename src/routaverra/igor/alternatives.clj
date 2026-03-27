@@ -3,13 +3,13 @@
    constraint branches.
 
    Returns a handle that IS the constraint (implements IExpress) and
-   supports solution readers (chosen) like the graph API."
+   supports a choice extractor like the graph API."
   (:require [routaverra.igor.protocols :as protocols]
             [routaverra.igor.api :as api]
             [routaverra.igor.terms.core :as terms]
             [routaverra.igor.terms.introduced :as terms.introduced]))
 
-(defrecord Alternatives [choice branches constraint-expr]
+(defrecord Alternatives [choice-var branches constraint-expr]
   protocols/IExpress
   (write [_self] (protocols/write constraint-expr))
   (codomain [_self] (protocols/codomain constraint-expr))
@@ -26,21 +26,22 @@
 
    Each argument is a constraint expression. Returns a handle that:
      - IS the constraint (pass directly to i/satisfy, i/and, etc.)
-     - Has a :choice decision variable (the index of the chosen branch)
-     - Supports i/chosen to read which branch was selected"
+     - Supports (i/choice handle) to get the decision variable for the selected branch index"
   [& constraints]
   (let [constraints (vec constraints)
         n           (count constraints)
-        choice      (api/fresh-int (set (range n)))
+        choice-var  (api/fresh-int (set (range n)))
         constraint  (apply terms/and*
                       (map-indexed
                         (fn [k c]
-                          (terms.introduced/implies* (terms/equals choice k) c))
+                          (terms.introduced/implies* (terms/equals choice-var k) c))
                         constraints))]
-    (->Alternatives choice constraints constraint)))
+    (->Alternatives choice-var constraints constraint)))
 
-(defn chosen
-  "Returns the index of the chosen branch from a solution."
-  [handle solution]
+(defn choice
+  "Returns the choice decision variable from an alternatives handle.
+   Use this to build constraints over the selection, or resolve it against
+   a solution to get the index of the branch the solver chose."
+  [handle]
   {:pre [(instance? Alternatives handle)]}
-  (get solution (:choice handle)))
+  (:choice-var handle))

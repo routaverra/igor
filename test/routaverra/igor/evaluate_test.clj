@@ -151,7 +151,27 @@
           term (i/every? (sorted-set 0 1 2 3 4)
                          (fn [i] (i/> x i)))]
       (is (true? (protocols/evaluate term {x 5})))
-      (is (false? (protocols/evaluate term {x 3}))))))
+      (is (false? (protocols/evaluate term {x 3})))))
+  (testing "every? on empty set returns true (matches clojure.core/every?)"
+    (let [x (api/fresh-set (range 10))
+          term (i/every? x (fn [i] (i/> i 100)))]
+      (is (true? (protocols/evaluate term {x #{}}))))))
+
+(deftest some-evaluate-test
+  (testing "some quantifier"
+    (let [x (api/fresh-int (range 10))
+          term (i/some (sorted-set 0 1 2 3 4)
+                       (fn [i] (i/> x i)))]
+      (is (true? (protocols/evaluate term {x 3})))
+      (is (false? (protocols/evaluate term {x 0})))))
+  (testing "some on empty set returns false (matches boolean of clojure.core/some)"
+    (let [x (api/fresh-set (range 10))
+          term (i/some x (fn [i] (i/> i 0)))]
+      (is (false? (protocols/evaluate term {x #{}})))))
+  (testing "some with all-false predicates returns false"
+    (let [x (api/fresh-set (range 10))
+          term (i/some x (fn [i] (i/> i 100)))]
+      (is (false? (protocols/evaluate term {x #{1 2 3}}))))))
 
 (deftest image-evaluate-test
   (testing "image generator"

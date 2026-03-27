@@ -153,4 +153,4 @@
 ;; --- Constructive disjunction ---
 
 (def alternatives alternatives/alternatives)
-(def chosen alternatives/chosen)
+(def choice alternatives/choice)
