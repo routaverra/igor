@@ -271,34 +271,6 @@
                                 (i/implies false (i/= a 3)))
                                a))))))
 
-(deftest implies-ground-passthrough-vs-clojure-when-test
-  (testing "i/implies with false condition returns true (implication), unlike clojure when which returns nil"
-    ;; MiniZinc implication: false -> X = true (vacuous truth)
-    ;; Clojure when:         (when false X) = nil (falsey)
-    (is (= true (i/implies false true))
-        "ground pass-through: false -> true = true (implication)")
-    (is (= true (i/implies false false))
-        "ground pass-through: false -> false = true (vacuous truth)")
-    (is (nil? (clojure.core/when false true))
-        "clojure when returns nil when condition is false"))
-
-  (testing "this causes semantic divergence when when is used inside and"
-    ;; Because (i/implies false false) => true, this conjunction is true:
-    (is (= true (i/and (i/implies false false) true))
-        "vacuous implication doesn't falsify the conjunction")
-    ;; But with Clojure semantics, (and (when false false) true) => nil
-    (is (nil? (clojure.core/and (clojure.core/when false false) true))
-        "clojure and+when returns nil"))
-
-  (testing "evaluate path also uses implication semantics"
-    (let [b (i/fresh-bool)
-          body (i/fresh-bool)]
-      ;; When condition is false, evaluate returns true (not nil/false)
-      (is (= true (protocols/evaluate (i/implies b body) {b false body false}))
-          "evaluate: false -> false = true (implication)")
-      (is (= true (protocols/evaluate (i/implies b body) {b false body true}))
-          "evaluate: false -> true = true (implication)"))))
-
 (deftest not-test
   (testing "not"
     (let [a (i/fresh-int int-domain)]

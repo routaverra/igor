@@ -1,8 +1,8 @@
 (ns routaverra.igor
-  (:refer-clojure :exclude [+ - * / = > < >= <= and or not if cond
+  (:refer-clojure :exclude [+ - * / = > < >= <= and or not if cond some every?
                              mod rem inc dec even? odd? pos? neg? zero?
                              true? false? not= contains? count max min nth abs
-                             every? resolve])
+                             resolve])
   (:require [routaverra.igor.api :as api]
             [routaverra.igor.protocols :as protocols]
             [routaverra.igor.solver :as solver]
@@ -115,7 +115,8 @@
 (def superset? terms.set/superset?)
 (def set< terms.set/set<)
 (def set<= terms.set/set<=)
-(def every? terms.introduced/every?)
+(def every? terms/every?*)
+(def some terms/some*)
 (def image terms.introduced/image)
 (def digraph graph/digraph)
 (def active-nodes graph/active-nodes)

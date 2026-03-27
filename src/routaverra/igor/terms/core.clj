@@ -1,5 +1,5 @@
 (ns routaverra.igor.terms.core
-  (:refer-clojure :exclude [+ - * / = > < >= <= and or not
+  (:refer-clojure :exclude [+ - * / = > < >= <= and or not some every?
                              mod rem inc dec even? odd? pos? neg? zero?
                              true? false? not= contains? count max min])
   (:require [routaverra.igor.protocols :as protocols]
@@ -20,7 +20,7 @@
   [x]
   (clojure.core/or (number? x)
                    (instance? Boolean x)
-                   (clojure.core/and (set? x) (every? ground? x))))
+                   (clojure.core/and (set? x) (clojure.core/every? ground? x))))
 
 (defn translation-error! [self]
   (throw
@@ -222,7 +222,7 @@
   (bindings [self] (api/unify-argv-bindings self))
   (validate [self] (api/validate-domains self))
   (translate [self] (api/translate-nary-operation "/\\" (map protocols/translate (:argv self))))
-  (evaluate [self solution] (every? identity (api/eval-argv self solution))))
+  (evaluate [self solution] (clojure.core/every? identity (api/eval-argv self solution))))
 
 (defn conjunctive? [x] (clojure.core/= (type x) TermAnd))
 
@@ -235,7 +235,7 @@
   (bindings [self] (api/unify-argv-bindings self))
   (validate [self] (api/validate-domains self))
   (translate [self] (api/translate-nary-operation "\\/" (map protocols/translate (:argv self))))
-  (evaluate [self solution] (boolean (some identity (api/eval-argv self solution)))))
+  (evaluate [self solution] (boolean (clojure.core/some identity (api/eval-argv self solution)))))
 
 (defrecord TermGreaterThan [argv]
   protocols/IExpress
@@ -558,13 +558,13 @@
     (api/cacheing-validate term)))
 
 (defn plus [& args]
-  (ground-or-validate (->TermPlus (vec args)) (every? ground? args)))
+  (ground-or-validate (->TermPlus (vec args)) (clojure.core/every? ground? args)))
 (defn product [& args]
-  (ground-or-validate (->TermProduct (vec args)) (every? ground? args)))
+  (ground-or-validate (->TermProduct (vec args)) (clojure.core/every? ground? args)))
 (defn minus [& args]
-  (ground-or-validate (->TermMinus (vec args)) (every? ground? args)))
+  (ground-or-validate (->TermMinus (vec args)) (clojure.core/every? ground? args)))
 (defn divide [& args]
-  (ground-or-validate (->TermDivide (vec args)) (every? ground? args)))
+  (ground-or-validate (->TermDivide (vec args)) (clojure.core/every? ground? args)))
 (defn inc* [x]
   (ground-or-validate (->TermInc [x]) (ground? x)))
 (defn dec* [x]
@@ -574,44 +574,44 @@
 (defn odd?* [x]
   (ground-or-validate (->TermOdd? [x]) (ground? x)))
 (defn max* [& args]
-  (ground-or-validate (->TermMax (vec args)) (every? ground? args)))
+  (ground-or-validate (->TermMax (vec args)) (clojure.core/every? ground? args)))
 (defn min* [& args]
-  (ground-or-validate (->TermMin (vec args)) (every? ground? args)))
+  (ground-or-validate (->TermMin (vec args)) (clojure.core/every? ground? args)))
 (defn true?* [x]
   (ground-or-validate (->TermTrue? [x]) (ground? x)))
 (defn false?* [x]
   (ground-or-validate (->TermFalse? [x]) (ground? x)))
 (defn and* [& args]
-  (ground-or-validate (->TermAnd (vec args)) (every? ground? args)))
+  (ground-or-validate (->TermAnd (vec args)) (clojure.core/every? ground? args)))
 (defn or* [& args]
-  (ground-or-validate (->TermOr (vec args)) (every? ground? args)))
+  (ground-or-validate (->TermOr (vec args)) (clojure.core/every? ground? args)))
 (defn not* [x]
   (ground-or-validate (->TermNot [x]) (ground? x)))
 (defn greater-than [& args]
-  (ground-or-validate (->TermGreaterThan (vec args)) (every? ground? args)))
+  (ground-or-validate (->TermGreaterThan (vec args)) (clojure.core/every? ground? args)))
 (defn less-than [& args]
-  (ground-or-validate (->TermLessThan (vec args)) (every? ground? args)))
+  (ground-or-validate (->TermLessThan (vec args)) (clojure.core/every? ground? args)))
 (defn gte [& args]
-  (ground-or-validate (->TermGreaterThanOrEqualTo (vec args)) (every? ground? args)))
+  (ground-or-validate (->TermGreaterThanOrEqualTo (vec args)) (clojure.core/every? ground? args)))
 (defn lte [& args]
-  (ground-or-validate (->TermLessThanOrEqualTo (vec args)) (every? ground? args)))
+  (ground-or-validate (->TermLessThanOrEqualTo (vec args)) (clojure.core/every? ground? args)))
 (defn equals [& args]
-  (ground-or-validate (->TermEquals (vec args)) (every? ground? args)))
+  (ground-or-validate (->TermEquals (vec args)) (clojure.core/every? ground? args)))
 (defn not-equals [& args]
-  (if (every? ground? args)
+  (if (clojure.core/every? ground? args)
     (clojure.core/not (protocols/evaluate (->TermEquals (vec args)) {}))
     (not* (apply equals args))))
 (defn iff [test then else]
-  (ground-or-validate (->TermIf [test then else]) (every? ground? [test then else])))
+  (ground-or-validate (->TermIf [test then else]) (clojure.core/every? ground? [test then else])))
 (defn cond* [& args]
   (let [penultimate (get (vec args) (clojure.core/- (clojure.core/count args) 2))]
     (clojure.core/when-not (clojure.core/contains? #{:else :default} penultimate)
       (throw (ex-info "cond requires :else or :default" {})))
     (let [normalized (-> (drop-last 2 args) vec (conj (last args)))]
       (ground-or-validate (->TermCond normalized)
-                          (every? ground? normalized)))))
+                          (clojure.core/every? ground? normalized)))))
 (defn contains?* [set-expr elem]
-  (ground-or-validate (->TermContains [set-expr elem]) (every? ground? [set-expr elem])))
+  (ground-or-validate (->TermContains [set-expr elem]) (clojure.core/every? ground? [set-expr elem])))
 (defn pos?* [x]
   (ground-or-validate (->TermPos? [x]) (ground? x)))
 (defn neg?* [x]
@@ -619,21 +619,105 @@
 (defn zero?* [x]
   (ground-or-validate (->TermZero? [x]) (ground? x)))
 (defn modulo [& args]
-  (ground-or-validate (->TermMod (vec args)) (every? ground? args)))
+  (ground-or-validate (->TermMod (vec args)) (clojure.core/every? ground? args)))
 (defn remainder [& args]
-  (ground-or-validate (->TermRem (vec args)) (every? ground? args)))
+  (ground-or-validate (->TermRem (vec args)) (clojure.core/every? ground? args)))
 (defn abs* [x]
   (ground-or-validate (->TermAbs [x]) (ground? x)))
 (defn pow* [base exp]
-  (ground-or-validate (->TermPow [base exp]) (every? ground? [base exp])))
+  (ground-or-validate (->TermPow [base exp]) (clojure.core/every? ground? [base exp])))
 (defn all-different [& args]
-  (ground-or-validate (->TermAllDifferent (vec args)) (every? ground? args)))
+  (ground-or-validate (->TermAllDifferent (vec args)) (clojure.core/every? ground? args)))
 (defn count* [x]
   (ground-or-validate (->TermCount [x]) (ground? x)))
 (defn nth* [elems idx]
   {:pre [(vector? elems) (clojure.core/>= (clojure.core/count elems) 1)]}
   (let [term (->TermNth (conj elems idx) (clojure.core/count elems))]
-    (ground-or-validate term (clojure.core/and (every? ground? elems) (ground? idx)))))
+    (ground-or-validate term (clojure.core/and (clojure.core/every? ground? elems) (ground? idx)))))
+
+;; --- Quantifiers ---
+
+(defn- quantifier-fresh
+  ([] (quantifier-fresh (str (gensym))))
+  ([id] (api/->Decision id)))
+
+(defrecord TermEvery? [bind-sym argv]
+  protocols/IExpress
+  (write [_self] (let [[local-decision set-expr constraint-expr] argv]
+                   (list
+                    'every?
+                    [bind-sym
+                     (protocols/write set-expr)]
+                    (clojure.walk/postwalk
+                     (fn [e]
+                       (if
+                        (clojure.core/= e (protocols/write local-decision))
+                         bind-sym
+                         e))
+                     (protocols/write constraint-expr)))))
+  (codomain [self] {types/Bool self})
+  (domainv [self] [{types/Numeric self} {types/Set self} {types/Bool self}])
+  (decisions [self] (dissoc
+                     (api/unify-argv-decisions self)
+                     (first argv)))
+  (bindings [self] (api/unify-argv-bindings self))
+  (validate [self] (api/validate-domains self))
+  (translate [self] (>>
+                     {:local-decision (protocols/translate (first argv))
+                      :set-expr (protocols/translate (second argv))
+                      :constraint-expr (protocols/translate (last argv))}
+                     "( forall ( {{local-decision}} in {{set-expr}} )( {{constraint-expr}} ) )"))
+  (evaluate [self solution]
+    (let [[local-decision set-expr constraint-expr] argv
+          s (api/eval-arg set-expr solution)]
+      (clojure.core/every? (fn [elem]
+                (api/eval-arg constraint-expr (assoc solution local-decision elem)))
+              s))))
+
+(defrecord TermSome [bind-sym argv]
+  protocols/IExpress
+  (write [_self] (let [[local-decision set-expr constraint-expr] argv]
+                   (list
+                    'some
+                    [bind-sym
+                     (protocols/write set-expr)]
+                    (clojure.walk/postwalk
+                     (fn [e]
+                       (if
+                        (clojure.core/= e (protocols/write local-decision))
+                         bind-sym
+                         e))
+                     (protocols/write constraint-expr)))))
+  (codomain [self] {types/Bool self})
+  (domainv [self] [{types/Numeric self} {types/Set self} {types/Bool self}])
+  (decisions [self] (dissoc
+                     (api/unify-argv-decisions self)
+                     (first argv)))
+  (bindings [self] (api/unify-argv-bindings self))
+  (validate [self] (api/validate-domains self))
+  (translate [self] (>>
+                     {:local-decision (protocols/translate (first argv))
+                      :set-expr (protocols/translate (second argv))
+                      :constraint-expr (protocols/translate (last argv))}
+                     "( exists ( {{local-decision}} in {{set-expr}} )( {{constraint-expr}} ) )"))
+  (evaluate [self solution]
+    (let [[local-decision set-expr constraint-expr] argv
+          s (api/eval-arg set-expr solution)]
+      (boolean (clojure.core/some (fn [elem]
+                       (api/eval-arg constraint-expr (assoc solution local-decision elem)))
+                     s)))))
+
+(defn every?* [set-expr constraint-fn]
+  (let [local-decision (api/lexical (quantifier-fresh))]
+    (api/cacheing-validate
+     (->TermEvery? (:id local-decision)
+                   [local-decision set-expr (constraint-fn local-decision)]))))
+
+(defn some* [set-expr constraint-fn]
+  (let [local-decision (api/lexical (quantifier-fresh))]
+    (api/cacheing-validate
+     (->TermSome (:id local-decision)
+                 [local-decision set-expr (constraint-fn local-decision)]))))
 
 ;; --- translate-comparator (moved from api) ---
 

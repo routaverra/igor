@@ -47,6 +47,33 @@
                             true))))]
         (is (= true (validate (get res x))))))))
 
+(deftest some-test
+  (testing "some"
+    (testing "internal decision is hidden from external retrieval"
+      (is (= 1
+             (count
+              (protocols/decisions
+               (i/some (i/fresh) (fn [a] (i/= a 1))))))))
+
+    (testing "some constrains: at least one element satisfies"
+      (let [x (i/fresh-set (range 10))
+            res (i/satisfy
+                 (i/and
+                  (i/some x (fn [a] (i/> a 7)))
+                  (i/<= (i/count x) 2)))]
+        (is (clojure.core/some #(> % 7) (get res x)))))
+
+    (testing "some evaluates against solution"
+      (let [x (i/fresh-set (range 10))
+            term (i/some x (fn [a] (i/> a 5)))]
+        (is (true? (protocols/evaluate term {x #{1 2 8}})))
+        (is (false? (protocols/evaluate term {x #{1 2 3}})))))
+
+    (testing "some returns false for empty set"
+      (let [x (i/fresh-set (range 5))
+            term (i/some x (fn [a] (i/> a 0)))]
+        (is (false? (protocols/evaluate term {x #{}})))))))
+
 (deftest image-test
   (testing "image"
     (testing "internal decision is validated as numeric"

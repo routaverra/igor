@@ -511,7 +511,7 @@
        ", \\mathcal{A})"))
 
 ;; --- Quantifiers ---
-(defmethod render-node [routaverra.igor.terms.introduced.TermEvery? :latex] [node env]
+(defmethod render-node [routaverra.igor.terms.core.TermEvery? :latex] [node env]
   (let [[local-decision set-expr constraint-expr] (:argv node)]
     (str "\\forall " (render-subtree local-decision env)
          " \\in " (render-subtree set-expr env)
@@ -770,7 +770,7 @@
   (str "costRegular(x\u20D7, " (render-subtree (:cost node) env) ", \uD835\uDC9C)"))
 
 ;; --- Quantifiers ---
-(defmethod render-node [routaverra.igor.terms.introduced.TermEvery? :unicode] [node env]
+(defmethod render-node [routaverra.igor.terms.core.TermEvery? :unicode] [node env]
   (let [[local-decision set-expr constraint-expr] (:argv node)]
     (str "\u2200 " (render-subtree local-decision env)
          " \u2208 " (render-subtree set-expr env)
