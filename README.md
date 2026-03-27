@@ -175,7 +175,7 @@ Each letter stands for a different digit (0–9). The goal: find the unique digi
       cluster-free
       (i/every? (i/bind (range 12) x)
         (fn [a]
-          (i/when (i/contains? x (i/mod (i/+ a 1) 12))
+          (i/implies (i/contains? x (i/mod (i/+ a 1) 12))
             (i/not (i/contains? x (i/mod (i/+ a 2) 12))))))]
   (get (i/satisfy cluster-free) x))
 ;; => e.g. #{0 1 3 4 6 7 9 10}
@@ -310,7 +310,7 @@ For more usage examples, see [test/routaverra/igor/constraint_problems_test.clj]
 | `and` | `(and & args)` |
 | `or` | `(or & args)` |
 | `not` | `(not x)` |
-| `when` | `(when test body)` — implication (test -> body) |
+| `implies` | `(implies test body)` — implication (test -> body) |
 | `if` | `(if test then else)` — polymorphic return type |
 | `cond` | `(cond test1 expr1 ... :else default)` |
 

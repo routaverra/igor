@@ -6,7 +6,8 @@
    supports solution readers (chosen) like the graph API."
   (:require [routaverra.igor.protocols :as protocols]
             [routaverra.igor.api :as api]
-            [routaverra.igor.terms.core :as terms]))
+            [routaverra.igor.terms.core :as terms]
+            [routaverra.igor.terms.introduced :as terms.introduced]))
 
 (defrecord Alternatives [choice branches constraint-expr]
   protocols/IExpress
@@ -34,7 +35,7 @@
         constraint  (apply terms/and*
                       (map-indexed
                         (fn [k c]
-                          (terms/when* (terms/equals choice k) c))
+                          (terms.introduced/implies* (terms/equals choice k) c))
                         constraints))]
     (->Alternatives choice constraints constraint)))
 

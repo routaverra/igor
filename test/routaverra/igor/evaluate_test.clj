@@ -53,10 +53,10 @@
       (is (false? (protocols/evaluate (i/or b b) sol)))
       (is (false? (protocols/evaluate (i/not a) sol)))
       (is (true? (protocols/evaluate (i/not b) sol)))
-      ;; when: false -> anything = true (implication)
-      (is (true? (protocols/evaluate (i/when b a) sol)))
-      ;; when: true -> false = false
-      (is (false? (protocols/evaluate (i/when a b) sol))))))
+      ;; implies: false -> anything = true (implication)
+      (is (true? (protocols/evaluate (i/implies b a) sol)))
+      ;; implies: true -> false = false
+      (is (false? (protocols/evaluate (i/implies a b) sol))))))
 
 (deftest predicate-evaluate-test
   (testing "predicate terms"

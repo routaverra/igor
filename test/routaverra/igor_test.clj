@@ -74,4 +74,4 @@
           orphan (i/fresh-int (range 10))
           result (i/solve (i/= x 5) [x orphan])]
       (is (= 5 (first result)))
-      (is (i/dithered? (second result))))))
+      (is (i/unresolved? (second result))))))

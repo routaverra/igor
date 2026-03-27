@@ -1,5 +1,5 @@
 (ns routaverra.igor.terms.core
-  (:refer-clojure :exclude [+ - * / = > < >= <= and or not when
+  (:refer-clojure :exclude [+ - * / = > < >= <= and or not
                              mod rem inc dec even? odd? pos? neg? zero?
                              true? false? not= contains? count max min])
   (:require [routaverra.igor.protocols :as protocols]
@@ -8,7 +8,7 @@
             [routaverra.igor.utils.string :refer [>>]]))
 
 (declare plus product minus divide inc* dec* equals not-equals
-         greater-than less-than gte lte and* or* not* when*
+         greater-than less-than gte lte and* or* not*
          iff cond* contains?* count* max* min* nth*
          even?* odd* pos?* neg?* zero?* true?* false?*
          modulo remainder abs* all-different
@@ -236,22 +236,6 @@
   (validate [self] (api/validate-domains self))
   (translate [self] (api/translate-nary-operation "\\/" (map protocols/translate (:argv self))))
   (evaluate [self solution] (boolean (some identity (api/eval-argv self solution)))))
-
-(defrecord TermWhen [argv]
-  protocols/IExpress
-  (write [_self] (apply list 'when (map protocols/write argv)))
-  (codomain [self] {types/Bool self})
-  (domainv [self] (take 2 (repeat {types/Bool self})))
-  (decisions [self] (api/unify-argv-decisions self))
-  (bindings [self] (api/unify-argv-bindings self))
-  (validate [self] (api/validate-domains self))
-  (translate [self] (apply
-                     api/translate-binary-operation
-                     "->"
-                     (map protocols/translate (:argv self))))
-  (evaluate [self solution]
-    (let [[test body] (api/eval-argv self solution)]
-      (clojure.core/or (clojure.core/not test) body))))
 
 (defrecord TermGreaterThan [argv]
   protocols/IExpress
@@ -601,8 +585,6 @@
   (ground-or-validate (->TermAnd (vec args)) (every? ground? args)))
 (defn or* [& args]
   (ground-or-validate (->TermOr (vec args)) (every? ground? args)))
-(defn when* [test body]
-  (ground-or-validate (->TermWhen [test body]) (every? ground? [test body])))
 (defn not* [x]
   (ground-or-validate (->TermNot [x]) (ground? x)))
 (defn greater-than [& args]

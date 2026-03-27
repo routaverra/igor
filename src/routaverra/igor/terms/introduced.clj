@@ -3,7 +3,8 @@
   (:require [routaverra.igor.protocols :as protocols]
             [routaverra.igor.types :as types]
             [routaverra.igor.utils.string :refer [>>]]
-            [routaverra.igor.api :as api]))
+            [routaverra.igor.api :as api]
+            [routaverra.igor.terms.core :as terms.core]))
 
 (defrecord TermEvery? [bind-sym argv]
   protocols/IExpress
@@ -72,6 +73,22 @@
                    (api/eval-arg generator-expr (assoc solution local-decision elem)))
                  s)))))
 
+(defrecord TermImplies [argv]
+  protocols/IExpress
+  (write [_self] (apply list 'implies (map protocols/write argv)))
+  (codomain [self] {types/Bool self})
+  (domainv [self] (take 2 (repeat {types/Bool self})))
+  (decisions [self] (api/unify-argv-decisions self))
+  (bindings [self] (api/unify-argv-bindings self))
+  (validate [self] (api/validate-domains self))
+  (translate [self] (apply
+                     api/translate-binary-operation
+                     "->"
+                     (map protocols/translate (:argv self))))
+  (evaluate [self solution]
+    (let [[test body] (api/eval-argv self solution)]
+      (clojure.core/or (clojure.core/not test) body))))
+
 ;; --- Constructor functions ---
 
 (defn fresh
@@ -89,3 +106,8 @@
     (api/cacheing-validate
      (->TermImage (:id local-decision)
                   [local-decision set-expr (generator-fn local-decision)]))))
+
+(defn implies* [test body]
+  (if (clojure.core/every? terms.core/ground? [test body])
+    (protocols/evaluate (->TermImplies [test body]) {})
+    (api/cacheing-validate (->TermImplies [test body]))))

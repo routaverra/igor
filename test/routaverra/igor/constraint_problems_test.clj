@@ -518,7 +518,7 @@
           ;; job-at is inverse permutation of pos
           inverse-link (->> (for [i (range n) k (range n)]
                               ;; if pos[i] = k then job-at[k] = i
-                              (i/when (i/= (nth pos i) k)
+                              (i/implies (i/= (nth pos i) k)
                                 (i/= (nth job-at k) i)))
                             (apply i/and))
           job-at-diff (apply i/all-different job-at)
@@ -742,11 +742,11 @@
                             c-moved (i/not= c0 c1)]
                         (i/and
                          ;; If wolf moved, it was with farmer both before and after
-                         (i/when w-moved (i/and (i/= w0 f0) (i/= w1 f1)))
+                         (i/implies w-moved (i/and (i/= w0 f0) (i/= w1 f1)))
                          ;; If goat moved, it was with farmer both before and after
-                         (i/when g-moved (i/and (i/= g0 f0) (i/= g1 f1)))
+                         (i/implies g-moved (i/and (i/= g0 f0) (i/= g1 f1)))
                          ;; If cabbage moved, it was with farmer both before and after
-                         (i/when c-moved (i/and (i/= c0 f0) (i/= c1 f1)))
+                         (i/implies c-moved (i/and (i/= c0 f0) (i/= c1 f1)))
                          ;; At most one entity moves with the farmer
                          ;; (at most one of w-moved, g-moved, c-moved is true)
                          ;; Using: NOT(a AND b) for each pair

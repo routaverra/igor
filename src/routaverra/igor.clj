@@ -1,5 +1,5 @@
 (ns routaverra.igor
-  (:refer-clojure :exclude [+ - * / = > < >= <= and or not when if cond
+  (:refer-clojure :exclude [+ - * / = > < >= <= and or not if cond
                              mod rem inc dec even? odd? pos? neg? zero?
                              true? false? not= contains? count max min nth abs
                              every? resolve])
@@ -65,7 +65,9 @@
   ([obj constraint opts]
    (solver/solve (assoc opts :direction :minimize) constraint obj)))
 
-(defn dithered? [x]
+(def decision? api/decision?)
+
+(defn unresolved? [x]
   (boolean (api/cacheing-decisions x)))
 
 ;; --- Re-exported term constructors ---
@@ -85,7 +87,7 @@
 (def and terms/and*)
 (def or terms/or*)
 (def not terms/not*)
-(def when terms/when*)
+(def implies terms.introduced/implies*)
 (def if terms/iff)
 (def cond terms/cond*)
 (def even? terms/even?*)

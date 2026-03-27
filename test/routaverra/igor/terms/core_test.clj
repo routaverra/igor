@@ -16,7 +16,7 @@
               (i/satisfy
                (i/and
                 (i/= a 20)
-                (i/when (i/>= a 10)
+                (i/implies(i/>= a 10)
                   (i/= b 20))))
               b))))
 
@@ -27,7 +27,7 @@
               (i/satisfy
                (i/and
                 (i/= a 20)
-                (i/when (i/>= a 10)
+                (i/implies(i/>= a 10)
                   (i/= b true))))
               b))))
 
@@ -50,7 +50,7 @@
               (i/satisfy
                (i/and
                 (i/= a 30)
-                (i/when (i/<= a 30)
+                (i/implies(i/<= a 30)
                   (i/= b 20))))
               b))))
 
@@ -61,7 +61,7 @@
               (i/satisfy
                (i/and
                 (i/= a 20)
-                (i/when (i/<= a 21)
+                (i/implies(i/<= a 21)
                   (i/= b true))))
               b))))
 
@@ -84,7 +84,7 @@
               (i/satisfy
                (i/and
                 (i/= a 31)
-                (i/when (i/> a 30)
+                (i/implies(i/> a 30)
                   (i/= b 20))))
               b))))
 
@@ -95,7 +95,7 @@
               (i/satisfy
                (i/and
                 (i/= a 20)
-                (i/when (i/> a 21)
+                (i/implies(i/> a 21)
                   (i/= b true))))
               b))))
 
@@ -118,7 +118,7 @@
               (i/satisfy
                (i/and
                 (i/= a 20)
-                (i/when (i/< a 30)
+                (i/implies(i/< a 30)
                   (i/= b 20))))
               b))))
 
@@ -129,7 +129,7 @@
               (i/satisfy
                (i/and
                 (i/= a 20)
-                (i/when (i/< a 21)
+                (i/implies(i/< a 21)
                   (i/= b true))))
               b))))
 
@@ -152,7 +152,7 @@
                  (->
                   (i/satisfy
                    (i/and (i/= 0 a)
-                          (i/when (i/zero? a)
+                          (i/implies(i/zero? a)
                             (i/= b 42))))
                   (get b)))))))
 
@@ -165,7 +165,7 @@
                  (->
                   (i/satisfy
                    (i/and (i/= -42 a)
-                          (i/when (i/not (i/pos? a))
+                          (i/implies(i/not (i/pos? a))
                             (i/= b 42))))
                   (get b)))))))
 
@@ -178,7 +178,7 @@
                  (->
                   (i/satisfy
                    (i/and (i/= 42 a)
-                          (i/when (i/not (i/neg? a))
+                          (i/implies(i/not (i/neg? a))
                             (i/= b 42))))
                   (get b)))))))
 
@@ -256,20 +256,48 @@
 
     (is (clojure.core/not= #{} (only-val (i/satisfy (i/not= (i/bind (range 100) (i/fresh)) #{})))))))
 
-(deftest when-test
-  (testing "when"
+(deftest implies-test
+  (testing "implies"
     (let [a (i/fresh-int int-domain)]
       (is (= 3
              (get
               (i/satisfy
-               (i/when true (i/= a 3)))
+               (i/implies true (i/= a 3)))
               a)))
 
       (is (clojure.core/not= 3
                               (get
                                (i/satisfy
-                                (i/when false (i/= a 3)))
+                                (i/implies false (i/= a 3)))
                                a))))))
+
+(deftest implies-ground-passthrough-vs-clojure-when-test
+  (testing "i/implies with false condition returns true (implication), unlike clojure when which returns nil"
+    ;; MiniZinc implication: false -> X = true (vacuous truth)
+    ;; Clojure when:         (when false X) = nil (falsey)
+    (is (= true (i/implies false true))
+        "ground pass-through: false -> true = true (implication)")
+    (is (= true (i/implies false false))
+        "ground pass-through: false -> false = true (vacuous truth)")
+    (is (nil? (clojure.core/when false true))
+        "clojure when returns nil when condition is false"))
+
+  (testing "this causes semantic divergence when when is used inside and"
+    ;; Because (i/implies false false) => true, this conjunction is true:
+    (is (= true (i/and (i/implies false false) true))
+        "vacuous implication doesn't falsify the conjunction")
+    ;; But with Clojure semantics, (and (when false false) true) => nil
+    (is (nil? (clojure.core/and (clojure.core/when false false) true))
+        "clojure and+when returns nil"))
+
+  (testing "evaluate path also uses implication semantics"
+    (let [b (i/fresh-bool)
+          body (i/fresh-bool)]
+      ;; When condition is false, evaluate returns true (not nil/false)
+      (is (= true (protocols/evaluate (i/implies b body) {b false body false}))
+          "evaluate: false -> false = true (implication)")
+      (is (= true (protocols/evaluate (i/implies b body) {b false body true}))
+          "evaluate: false -> true = true (implication)"))))
 
 (deftest not-test
   (testing "not"
@@ -277,7 +305,7 @@
       (is (clojure.core/not=
            1
            (get
-            (i/satisfy (i/when (i/not true)
+            (i/satisfy (i/implies(i/not true)
                          (i/= a 1)))
             a))))))
 

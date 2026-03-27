@@ -39,7 +39,7 @@
   "Map from record type to precedence level. Lower = binds looser."
   {routaverra.igor.terms.core.TermIf      0
    routaverra.igor.terms.core.TermCond     0
-   routaverra.igor.terms.core.TermWhen     1
+   routaverra.igor.terms.introduced.TermImplies   1
    routaverra.igor.terms.core.TermOr       2
    routaverra.igor.terms.core.TermAnd      3
    routaverra.igor.terms.core.TermNot      4
@@ -442,7 +442,7 @@
 (defmethod render-node [routaverra.igor.terms.core.TermNot :latex] [node env]
   (str "\\neg " (render-child node (first (:argv node)) env)))
 
-(defmethod render-node [routaverra.igor.terms.core.TermWhen :latex] [node env]
+(defmethod render-node [routaverra.igor.terms.introduced.TermImplies :latex] [node env]
   (let [[ante conseq] (:argv node)]
     (str (render-child node ante env) " \\Rightarrow " (render-child node conseq env))))
 
@@ -709,7 +709,7 @@
 (defmethod render-node [routaverra.igor.terms.core.TermNot :unicode] [node env]
   (str "\u00AC" (render-child node (first (:argv node)) env)))
 
-(defmethod render-node [routaverra.igor.terms.core.TermWhen :unicode] [node env]
+(defmethod render-node [routaverra.igor.terms.introduced.TermImplies :unicode] [node env]
   (let [[ante conseq] (:argv node)]
     (str (render-child node ante env) " \u21D2 " (render-child node conseq env))))
 

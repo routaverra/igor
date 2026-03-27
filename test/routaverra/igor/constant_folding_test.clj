@@ -208,15 +208,15 @@
     (is (true? (i/not false)))
     (is (false? (i/not true)))))
 
-(deftest constant-fold-when-test
-  (testing "i/when folds (implication: not test or body)"
+(deftest constant-fold-implies-test
+  (testing "i/implies folds (implication: not test or body)"
     ;; true -> true = true
-    (is (true? (i/when true true)))
+    (is (true? (i/implies true true)))
     ;; true -> false = false
-    (is (false? (i/when true false)))
+    (is (false? (i/implies true false)))
     ;; false -> anything = true (vacuous)
-    (is (true? (i/when false false)))
-    (is (true? (i/when false true)))))
+    (is (true? (i/implies false false)))
+    (is (true? (i/implies false true)))))
 
 (deftest constant-fold-true?-test
   (testing "i/true? folds"
