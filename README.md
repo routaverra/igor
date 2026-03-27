@@ -4,7 +4,7 @@ Constraint programming for Clojure, backed by [MiniZinc](https://www.minizinc.or
 >
 > — Igor Stravinsky, *Poetics of Music*
 
-Igor shadows Clojure's core operators (`+`, `=`, `and`, `every?`, etc.) to produce constraint expressions that are first-class and data-oriented. You declare variables with domains, compose constraints using familiar Clojure syntax, and industrial solvers (Gecode, OR-Tools, etc.) return solutions as plain maps. It supports integer arithmetic, set algebra, universal quantification, extensional constraints (table, regular, cost-regular), and a graph constraint library — paths, spanning trees, circuits, connectivity — all composable and all optimizable via maximize/minimize.
+Igor shadows Clojure's core operators (`+`, `=`, `and`, `every?`, etc.) to produce constraint expressions that are first-class and data-oriented. You declare variables with domains, compose constraints using familiar Clojure syntax, and industrial solvers (Gecode, OR-Tools, etc.) return solutions as plain maps. It supports integer arithmetic, set algebra, universal and existential quantification, extensional constraints (table, regular, cost-regular), and a graph constraint library — paths, spanning trees, circuits, connectivity — all composable and all optimizable via maximize/minimize.
 
 ## Installation
 
@@ -40,7 +40,7 @@ Igor's operators (`i/+`, `i/=`, `i/and`, etc.) shadow their `clojure.core` count
 
 ## Core Concepts
 
-**Variables** — `fresh-int`, `fresh-bool`, `fresh-set` create typed decision variables. `fresh` creates an untyped variable whose type is inferred from usage. Domains are passed as collections:
+**Variables** — `fresh-int`, `fresh-bool`, `fresh-set` create typed decision variables. Domains are passed as collections:
 
 ```clojure
 (i/fresh-int (range 10))     ; integer in {0..9}
@@ -171,9 +171,9 @@ Each letter stands for a different digit (0–9). The goal: find the unique digi
 ```clojure
 ;; Find a subset of {0..11} such that no three consecutive
 ;; elements (mod 12) are all present — "cluster-free"
-(let [x (i/fresh)
+(let [x (i/fresh-set (range 12))
       cluster-free
-      (i/every? (i/bind (range 12) x)
+      (i/every? x
         (fn [a]
           (i/implies (i/contains? x (i/mod (i/+ a 1) 12))
             (i/not (i/contains? x (i/mod (i/+ a 2) 12))))))]
@@ -263,11 +263,10 @@ You define a graph as an edge list, then apply structural constraints — paths,
 
 ```clojure
 ;; Find a set X such that {x+1 | x ∈ X} = #{1 2 3}
-(let [x   (i/fresh)
+(let [x   (i/fresh-set (range 12))
       sol (i/satisfy
            (i/= #{1 2 3}
-                 (i/image (i/bind (range 12) x)
-                   (fn [a] (i/+ a 1)))))]
+                 (i/image x (fn [a] (i/+ a 1)))))]
   (sol x))
 ;; => #{0 1 2}
 ```
@@ -276,75 +275,96 @@ For more usage examples, see [test/routaverra/igor/constraint_problems_test.clj]
 
 ## Operations Reference
 
+In the tables below, `T` denotes a polymorphic type and `*` denotes variadic (two or more arguments).
+
 ### Variables
 
 | Function | Description |
 |----------|-------------|
-| `fresh` | Untyped decision variable (type inferred from usage) |
 | `fresh-int` | `(fresh-int domain)` — integer variable |
 | `fresh-bool` | `(fresh-bool)` — boolean variable |
 | `fresh-set` | `(fresh-set universe)` — set variable (subset of universe) |
-| `bind` | `(bind coll decision)` — for ints, constrains the domain (allowed values); for sets, constrains the universe (allowed members) |
 
-### Arithmetic (Numeric -> Numeric)
+### Arithmetic
 
-| | | | |
-|---|---|---|---|
-| `+` | `-` | `*` | `/` (integer div) |
-| `inc` | `dec` | `abs` | `pow` |
-| `max` | `min` | `mod` | `rem` |
+| Operator | Description | Input | Output | Shadows |
+|----------|-------------|-------|--------|---------|
+| `+` | Addition | Numeric* | Numeric | `clojure.core` |
+| `-` | Subtraction | Numeric* | Numeric | `clojure.core` |
+| `*` | Multiplication | Numeric* | Numeric | `clojure.core` |
+| `/` | Integer division | Numeric* | Numeric | `clojure.core` |
+| `inc` | Increment by 1 | Numeric | Numeric | `clojure.core` |
+| `dec` | Decrement by 1 | Numeric | Numeric | `clojure.core` |
+| `abs` | Absolute value | Numeric | Numeric | — |
+| `pow` | Exponentiation | Numeric, Numeric | Numeric | — |
+| `max` | Maximum | Numeric* | Numeric | `clojure.core` |
+| `min` | Minimum | Numeric* | Numeric | `clojure.core` |
+| `mod` | Modulo (Clojure semantics) | Numeric, Numeric | Numeric | `clojure.core` |
+| `rem` | Remainder (truncated) | Numeric, Numeric | Numeric | `clojure.core` |
 
-### Comparison (Numeric -> Bool)
+### Comparison
 
-| | | | |
-|---|---|---|---|
-| `=` | `not=` | `>` | `<` |
-| `>=` | `<=` | | |
+| Operator | Description | Input | Output | Shadows |
+|----------|-------------|-------|--------|---------|
+| `=` | Equality (also accepts Bool, Set) | polymorphic* | Bool | `clojure.core` |
+| `not=` | Inequality (also accepts Bool, Set) | polymorphic* | Bool | `clojure.core` |
+| `>` | Greater than | Numeric* | Bool | `clojure.core` |
+| `<` | Less than | Numeric* | Bool | `clojure.core` |
+| `>=` | Greater than or equal | Numeric* | Bool | `clojure.core` |
+| `<=` | Less than or equal | Numeric* | Bool | `clojure.core` |
 
-`=` and `not=` also accept Bool and Set arguments.
+### Logic
 
-### Logic (Bool -> Bool)
-
-| Function | Signature |
-|----------|-----------|
-| `and` | `(and & args)` |
-| `or` | `(or & args)` |
-| `not` | `(not x)` |
-| `implies` | `(implies test body)` — implication (test -> body) |
-| `if` | `(if test then else)` — polymorphic return type |
-| `cond` | `(cond test1 expr1 ... :else default)` |
+| Operator | Description | Input | Output | Shadows |
+|----------|-------------|-------|--------|---------|
+| `and` | Conjunction | Bool* | Bool | `clojure.core` |
+| `or` | Disjunction | Bool* | Bool | `clojure.core` |
+| `not` | Negation | Bool | Bool | `clojure.core` |
+| `implies` | Implication (test -> body) | Bool, Bool | Bool | — |
+| `every?` | `(every? set-expr (fn [elem] bool-expr))` — universal quantification | Set, (Numeric -> Bool) | Bool | `clojure.core` |
+| `some` | `(some set-expr (fn [elem] bool-expr))` — existential quantification | Set, (Numeric -> Bool) | Bool | `clojure.core` |
 
 ### Predicates
 
-| Numeric -> Bool | Bool -> Bool |
-|-----------------|--------------|
-| `even?` `odd?` | `true?` `false?` |
-| `pos?` `neg?` `zero?` | |
+| Operator | Description | Input | Output | Shadows |
+|----------|-------------|-------|--------|---------|
+| `even?` | Even number | Numeric | Bool | `clojure.core` |
+| `odd?` | Odd number | Numeric | Bool | `clojure.core` |
+| `pos?` | Positive | Numeric | Bool | `clojure.core` |
+| `neg?` | Negative | Numeric | Bool | `clojure.core` |
+| `zero?` | Zero | Numeric | Bool | `clojure.core` |
+| `true?` | Exactly true | Bool | Bool | `clojure.core` |
+| `false?` | Exactly false | Bool | Bool | `clojure.core` |
+
+### Conditionals
+
+| Operator | Description | Input | Output | Shadows |
+|----------|-------------|-------|--------|---------|
+| `if` | `(if test then else)` | Bool, T, T | T | `clojure.core` |
+| `cond` | `(cond test1 expr1 ... :else default)` | (Bool, T)*, T | T | `clojure.core` |
 
 ### Collections
 
-| Function | Types | Description |
-|----------|-------|-------------|
-| `nth` | `(nth [T...] Numeric) -> T` | Index into a vector of expressions |
-| `count` | `(count Set) -> Numeric` | Set cardinality |
-| `contains?` | `(contains? Set Numeric) -> Bool` | Set membership |
-| `all-different` | `(all-different & Numeric) -> Bool` | All arguments must take distinct values |
+| Operator | Description | Input | Output | Shadows |
+|----------|-------------|-------|--------|---------|
+| `nth` | Index into a vector of expressions | [T...], Numeric | T | `clojure.core` |
+| `count` | Set cardinality | Set | Numeric | `clojure.core` |
+| `contains?` | Set membership | Set, Numeric | Bool | `clojure.core` |
+| `all-different` | All arguments must take distinct values | Numeric* | Bool | — |
 
 ### Set Operations
 
-| Set -> Set | Set -> Bool |
-|------------|-------------|
-| `intersection` | `subset?` |
-| `difference` | `superset?` |
-| `sym-diff` | `set<` (strict lex) |
-| `union` | `set<=` (lex) |
-
-### Iteration
-
-| Function | Description |
-|----------|-------------|
-| `every?` | `(every? set-expr (fn [elem] bool-expr))` — true when the constraint holds for every element in the set |
-| `image` | `(image set-expr (fn [elem] expr))` — builds a new set by applying a function to each element: `{f(x) \| x ∈ S}` |
+| Operator | Description | Input | Output | Shadows |
+|----------|-------------|-------|--------|---------|
+| `intersection` | Set intersection | Set* | Set | `clojure.set` |
+| `difference` | Set difference | Set* | Set | `clojure.set` |
+| `union` | Set union | Set* | Set | `clojure.set` |
+| `sym-diff` | Symmetric difference | Set* | Set | — |
+| `subset?` | Subset test | Set* | Bool | `clojure.set` |
+| `superset?` | Superset test | Set* | Bool | `clojure.set` |
+| `set<` | Strict lexicographic ordering | Set, Set | Bool | — |
+| `set<=` | Lexicographic ordering | Set, Set | Bool | — |
+| `image` | `(image set-expr (fn [elem] expr))` — set comprehension: `{f(x) \| x ∈ S}` | Set, (Numeric -> Numeric) | Set | — |
 
 ### Extensional Constraints
 
