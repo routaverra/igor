@@ -534,7 +534,7 @@
           ;; job-at is inverse permutation of pos
           inverse-link (->> (for [i (range n) k (range n)]
                               ;; if pos[i] = k then job-at[k] = i
-                              (i/implies (i/= (nth pos i) k)
+                              (i/?> (i/= (nth pos i) k)
                                 (i/= (nth job-at k) i)))
                             (apply i/and))
           job-at-diff (apply i/all-different job-at)
@@ -758,11 +758,11 @@
                             c-moved (i/not= c0 c1)]
                         (i/and
                          ;; If wolf moved, it was with farmer both before and after
-                         (i/implies w-moved (i/and (i/= w0 f0) (i/= w1 f1)))
+                         (i/?> w-moved (i/and (i/= w0 f0) (i/= w1 f1)))
                          ;; If goat moved, it was with farmer both before and after
-                         (i/implies g-moved (i/and (i/= g0 f0) (i/= g1 f1)))
+                         (i/?> g-moved (i/and (i/= g0 f0) (i/= g1 f1)))
                          ;; If cabbage moved, it was with farmer both before and after
-                         (i/implies c-moved (i/and (i/= c0 f0) (i/= c1 f1)))
+                         (i/?> c-moved (i/and (i/= c0 f0) (i/= c1 f1)))
                          ;; At most one entity moves with the farmer
                          ;; (at most one of w-moved, g-moved, c-moved is true)
                          ;; Using: NOT(a AND b) for each pair
@@ -847,10 +847,10 @@
                    ;; Rule 2: no reflexive sentences
                    (i/not= subject object)
                    ;; Rule 3: fears requires animate object
-                   (i/implies (i/= verb :fears)
+                   (i/?> (i/= verb :fears)
                               (i/contains? animate object))
                    ;; Rule 4: guards requires inanimate object
-                   (i/implies (i/= verb :guards)
+                   (i/?> (i/= verb :guards)
                               (i/contains? inanimate object)))
           sol (i/satisfy grammar)
           s (sol subject) v (sol verb) o (sol object)]
@@ -874,9 +874,9 @@
           grammar (i/and
                    (i/contains? animate subject)
                    (i/not= subject object)
-                   (i/implies (i/= verb :fears)
+                   (i/?> (i/= verb :fears)
                               (i/contains? animate object))
-                   (i/implies (i/= verb :guards)
+                   (i/?> (i/= verb :guards)
                               (i/contains? inanimate object)))]
       ;; Count all valid sentences
       (let [solutions (i/satisfy-all grammar)
@@ -919,11 +919,11 @@
           phonotactics
           (i/and
            ;; Vowel harmony: all vowels from same class
-           (i/implies (i/= harmony :front)
+           (i/?> (i/= harmony :front)
                       (i/and (i/contains? front-vowels v1)
                              (i/contains? front-vowels v2)
                              (i/contains? front-vowels v3)))
-           (i/implies (i/= harmony :back)
+           (i/?> (i/= harmony :back)
                       (i/and (i/contains? back-vowels v1)
                              (i/contains? back-vowels v2)
                              (i/contains? back-vowels v3)))

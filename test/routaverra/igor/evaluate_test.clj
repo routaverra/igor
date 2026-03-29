@@ -53,10 +53,22 @@
       (is (false? (protocols/evaluate (i/or b b) sol)))
       (is (false? (protocols/evaluate (i/not a) sol)))
       (is (true? (protocols/evaluate (i/not b) sol)))
-      ;; implies: false -> anything = true (implication)
-      (is (true? (protocols/evaluate (i/implies b a) sol)))
-      ;; implies: true -> false = false
-      (is (false? (protocols/evaluate (i/implies a b) sol))))))
+      ;; ?>: false -> anything = true (implication)
+      (is (true? (protocols/evaluate (i/?> b a) sol)))
+      ;; ?>: true -> false = false
+      (is (false? (protocols/evaluate (i/?> a b) sol)))
+      ;; <?: false <- true = false
+      (is (false? (protocols/evaluate (i/<? b a) sol)))
+      ;; <?: true <- false = true
+      (is (true? (protocols/evaluate (i/<? a b) sol)))
+      ;; <?>: true <-> true = true
+      (is (true? (protocols/evaluate (i/<?> a a) sol)))
+      ;; <?>: true <-> false = false
+      (is (false? (protocols/evaluate (i/<?> a b) sol)))
+      ;; n-ary ?>: true -> true -> false = false (second pair fails)
+      (is (false? (protocols/evaluate (i/?> a a b) sol)))
+      ;; n-ary ?>: false -> true -> true = true (vacuous first, true second)
+      (is (true? (protocols/evaluate (i/?> b a a) sol))))))
 
 (deftest predicate-evaluate-test
   (testing "predicate terms"

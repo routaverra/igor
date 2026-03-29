@@ -208,15 +208,60 @@
     (is (true? (i/not false)))
     (is (false? (i/not true)))))
 
-(deftest constant-fold-implies-test
-  (testing "i/implies folds (implication: not test or body)"
+(deftest constant-fold-implication-test
+  (testing "i/?> folds (implication: not test or body)"
     ;; true -> true = true
-    (is (true? (i/implies true true)))
+    (is (true? (i/?> true true)))
     ;; true -> false = false
-    (is (false? (i/implies true false)))
+    (is (false? (i/?> true false)))
     ;; false -> anything = true (vacuous)
-    (is (true? (i/implies false false)))
-    (is (true? (i/implies false true)))))
+    (is (true? (i/?> false false)))
+    (is (true? (i/?> false true))))
+  (testing "n-ary ?> folds pairwise"
+    ;; true -> true -> true = (true->true) /\ (true->true) = true
+    (is (true? (i/?> true true true)))
+    ;; true -> false -> true = (true->false) /\ (false->true) = false
+    (is (false? (i/?> true false true)))
+    ;; false -> false -> false = (false->false) /\ (false->false) = true
+    (is (true? (i/?> false false false))))
+  (testing "unary ?> folds to true"
+    (is (true? (i/?> true)))
+    (is (true? (i/?> false)))))
+
+(deftest constant-fold-reverse-implication-test
+  (testing "i/<? folds (reverse implication: a or not b)"
+    ;; true <- true = true or not true = true
+    (is (true? (i/<? true true)))
+    ;; true <- false = true or not false = true
+    (is (true? (i/<? true false)))
+    ;; false <- true = false or not true = false
+    (is (false? (i/<? false true)))
+    ;; false <- false = false or not false = true
+    (is (true? (i/<? false false))))
+  (testing "n-ary <? folds pairwise"
+    (is (true? (i/<? true true true)))
+    ;; false <- true <- ... : (false or not true) = false
+    (is (false? (i/<? false true true)))
+    ;; (<? true false true): (true <- false)=true, (false <- true)=false => false
+    (is (false? (i/<? true false true))))
+  (testing "unary <? folds to true"
+    (is (true? (i/<? true)))
+    (is (true? (i/<? false)))))
+
+(deftest constant-fold-coimplication-test
+  (testing "i/<?> folds (coimplication: a = b for booleans)"
+    (is (true? (i/<?> true true)))
+    (is (true? (i/<?> false false)))
+    (is (false? (i/<?> true false)))
+    (is (false? (i/<?> false true))))
+  (testing "n-ary <?> folds pairwise"
+    (is (true? (i/<?> true true true)))
+    (is (false? (i/<?> true true false)))
+    (is (true? (i/<?> false false false)))
+    (is (false? (i/<?> true false true))))
+  (testing "unary <?> folds to true"
+    (is (true? (i/<?> true)))
+    (is (true? (i/<?> false)))))
 
 (deftest constant-fold-true?-test
   (testing "i/true? folds"

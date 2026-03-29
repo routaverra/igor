@@ -93,7 +93,7 @@
     (testing "not"
       (is (str/includes? (notation/render-notation (i/not a) :format :latex) "\\neg")))
     (testing "implication"
-      (is (str/includes? (notation/render-notation (i/implies a b) :format :latex) "\\Rightarrow")))))
+      (is (str/includes? (notation/render-notation (i/?> a b) :format :latex) "\\Rightarrow")))))
 
 (deftest abs-test
   (let [x (api/fresh)]

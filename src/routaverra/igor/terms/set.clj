@@ -38,7 +38,7 @@
   (decisions [self] (api/unify-argv-decisions self))
   (bindings [self] (api/unify-argv-bindings self))
   (validate [self] (api/validate-domains self))
-  (translate [self] (api/translate-nary-operation "intersect" (map protocols/translate (:argv self))))
+  (translate [self] (api/translate-associative-chain "intersect" (map protocols/translate (:argv self))))
   (evaluate [self solution] (apply set/intersection (api/eval-argv self solution))))
 
 (defrecord TermDifference [argv]
@@ -49,7 +49,7 @@
   (decisions [self] (api/unify-argv-decisions self))
   (bindings [self] (api/unify-argv-bindings self))
   (validate [self] (api/validate-domains self))
-  (translate [self] (api/translate-nary-operation "diff" (map protocols/translate (:argv self))))
+  (translate [self] (api/translate-associative-chain "diff" (map protocols/translate (:argv self))))
   (evaluate [self solution] (apply set/difference (api/eval-argv self solution))))
 
 (defrecord TermSymDiff [argv]
@@ -60,7 +60,7 @@
   (decisions [self] (api/unify-argv-decisions self))
   (bindings [self] (api/unify-argv-bindings self))
   (validate [self] (api/validate-domains self))
-  (translate [self] (api/translate-nary-operation "symdiff" (map protocols/translate (:argv self))))
+  (translate [self] (api/translate-associative-chain "symdiff" (map protocols/translate (:argv self))))
   (evaluate [self solution] (reduce i.set/sym-diff (api/eval-argv self solution))))
 
 (defrecord TermUnion [argv]
@@ -71,7 +71,7 @@
   (decisions [self] (api/unify-argv-decisions self))
   (bindings [self] (api/unify-argv-bindings self))
   (validate [self] (api/validate-domains self))
-  (translate [self] (api/translate-nary-operation "union" (map protocols/translate (:argv self))))
+  (translate [self] (api/translate-associative-chain "union" (map protocols/translate (:argv self))))
   (evaluate [self solution] (apply set/union (api/eval-argv self solution))))
 
 (defrecord TermSubset [argv]
@@ -82,7 +82,7 @@
   (decisions [self] (api/unify-argv-decisions self))
   (bindings [self] (api/unify-argv-bindings self))
   (validate [self] (api/validate-domains self))
-  (translate [self] (api/translate-nary-operation "subset" (map protocols/translate (:argv self))))
+  (translate [self] (api/translate-associative-chain "subset" (map protocols/translate (:argv self))))
   (evaluate [self solution]
     (let [vals (api/eval-argv self solution)]
       (every? true? (map (fn [[a b]] (set/subset? a b)) (partition 2 1 vals))))))
@@ -95,7 +95,7 @@
   (decisions [self] (api/unify-argv-decisions self))
   (bindings [self] (api/unify-argv-bindings self))
   (validate [self] (api/validate-domains self))
-  (translate [self] (api/translate-nary-operation "superset" (map protocols/translate (:argv self))))
+  (translate [self] (api/translate-associative-chain "superset" (map protocols/translate (:argv self))))
   (evaluate [self solution]
     (let [vals (api/eval-argv self solution)]
       (every? true? (map (fn [[a b]] (set/superset? a b)) (partition 2 1 vals))))))

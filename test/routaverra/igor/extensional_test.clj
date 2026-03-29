@@ -307,7 +307,7 @@
           ;; Weak-beat dissonances must be passing tones (stepwise approach + departure)
           weak-pass (apply i/and
                       (for [t (range 1 (dec n-cp) 2)]
-                        (i/implies (i/not (i/contains? consonant-intervals (nth h-ivs t)))
+                        (i/?> (i/not (i/contains? consonant-intervals (nth h-ivs t)))
                           (i/and (i/<= (i/abs (nth cp-ivars (dec t))) 2)
                                  (i/<= (i/abs (nth cp-ivars t)) 2)))))
           ;; Start and end on perfect consonance

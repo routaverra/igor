@@ -34,7 +34,7 @@
         constraint  (apply terms/and*
                       (map-indexed
                         (fn [k c]
-                          (terms.introduced/implies* (terms/equals choice-var k) c))
+                          (terms.introduced/?>* (terms/equals choice-var k) c))
                         constraints))]
     (->Alternatives choice-var constraints constraint)))
 

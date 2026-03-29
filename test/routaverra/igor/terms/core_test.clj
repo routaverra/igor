@@ -16,7 +16,7 @@
               (i/satisfy
                (i/and
                 (i/= a 20)
-                (i/implies(i/>= a 10)
+                (i/?>(i/>= a 10)
                   (i/= b 20))))
               b))))
 
@@ -27,7 +27,7 @@
               (i/satisfy
                (i/and
                 (i/= a 20)
-                (i/implies(i/>= a 10)
+                (i/?>(i/>= a 10)
                   (i/= b true))))
               b))))
 
@@ -50,7 +50,7 @@
               (i/satisfy
                (i/and
                 (i/= a 30)
-                (i/implies(i/<= a 30)
+                (i/?>(i/<= a 30)
                   (i/= b 20))))
               b))))
 
@@ -61,7 +61,7 @@
               (i/satisfy
                (i/and
                 (i/= a 20)
-                (i/implies(i/<= a 21)
+                (i/?>(i/<= a 21)
                   (i/= b true))))
               b))))
 
@@ -84,7 +84,7 @@
               (i/satisfy
                (i/and
                 (i/= a 31)
-                (i/implies(i/> a 30)
+                (i/?>(i/> a 30)
                   (i/= b 20))))
               b))))
 
@@ -95,7 +95,7 @@
               (i/satisfy
                (i/and
                 (i/= a 20)
-                (i/implies(i/> a 21)
+                (i/?>(i/> a 21)
                   (i/= b true))))
               b))))
 
@@ -118,7 +118,7 @@
               (i/satisfy
                (i/and
                 (i/= a 20)
-                (i/implies(i/< a 30)
+                (i/?>(i/< a 30)
                   (i/= b 20))))
               b))))
 
@@ -129,7 +129,7 @@
               (i/satisfy
                (i/and
                 (i/= a 20)
-                (i/implies(i/< a 21)
+                (i/?>(i/< a 21)
                   (i/= b true))))
               b))))
 
@@ -152,7 +152,7 @@
                  (->
                   (i/satisfy
                    (i/and (i/= 0 a)
-                          (i/implies(i/zero? a)
+                          (i/?>(i/zero? a)
                             (i/= b 42))))
                   (get b)))))))
 
@@ -165,7 +165,7 @@
                  (->
                   (i/satisfy
                    (i/and (i/= -42 a)
-                          (i/implies(i/not (i/pos? a))
+                          (i/?>(i/not (i/pos? a))
                             (i/= b 42))))
                   (get b)))))))
 
@@ -178,7 +178,7 @@
                  (->
                   (i/satisfy
                    (i/and (i/= 42 a)
-                          (i/implies(i/not (i/neg? a))
+                          (i/?>(i/not (i/neg? a))
                             (i/= b 42))))
                   (get b)))))))
 
@@ -256,19 +256,19 @@
 
     (is (clojure.core/not= #{} (only-val (i/satisfy (i/not= (i/bind (range 100) (i/fresh)) #{})))))))
 
-(deftest implies-test
-  (testing "implies"
+(deftest implication-test
+  (testing "?>"
     (let [a (i/fresh-int int-domain)]
       (is (= 3
              (get
               (i/satisfy
-               (i/implies true (i/= a 3)))
+               (i/?> true (i/= a 3)))
               a)))
 
       (is (clojure.core/not= 3
                               (get
                                (i/satisfy
-                                (i/implies false (i/= a 3)))
+                                (i/?> false (i/= a 3)))
                                a))))))
 
 (deftest not-test
@@ -277,7 +277,7 @@
       (is (clojure.core/not=
            1
            (get
-            (i/satisfy (i/implies(i/not true)
+            (i/satisfy (i/?>(i/not true)
                          (i/= a 1)))
             a))))))
 

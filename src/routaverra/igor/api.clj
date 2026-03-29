@@ -278,8 +278,18 @@
   (>> {:left left :right right :op-string op-string}
       "({{left}} {{op-string}} {{right}})"))
 
-(defn translate-nary-operation [op-string args]
+(defn translate-associative-chain [op-string args]
   (reduce (partial translate-binary-operation op-string) args))
+
+(defn translate-pairwise-chain [self op constructor-fn conjoin-fn]
+  (case (clojure.core/count (:argv self))
+    1 (protocols/translate true)
+    2 (apply translate-binary-operation op (map protocols/translate (:argv self)))
+    (->> (:argv self)
+         (partition 2 1)
+         (map (fn [[a b]] (constructor-fn a b)))
+         (apply conjoin-fn)
+         protocols/translate)))
 
 (defn unify-argv-bindings [e]
   (->> (:argv e)

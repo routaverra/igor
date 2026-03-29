@@ -31,7 +31,7 @@
   (let [satisfied (api/impl (api/fresh-bool))
         cost-expr (terms/iff satisfied 0 penalty)
         ;; If satisfied, the original constraint must hold
-        implication (terms.introduced/implies* satisfied constraint)
+        implication (terms.introduced/?>* satisfied constraint)
         ;; Violation = if satisfied then 0 else penalty
         ;; When penalty is ground, we can bound the violation domain
         ;; When penalty is a decision variable, leave violation unbound (solver infers range)
