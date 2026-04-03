@@ -39,7 +39,9 @@
   "Map from record type to precedence level. Lower = binds looser."
   {routaverra.igor.terms.core.TermIf      0
    routaverra.igor.terms.core.TermCond     0
-   routaverra.igor.terms.introduced.TermImplies   1
+   routaverra.igor.terms.introduced.TermImplication          1
+   routaverra.igor.terms.introduced.TermReverseImplication   1
+   routaverra.igor.terms.introduced.TermCoimplication        1
    routaverra.igor.terms.core.TermOr       2
    routaverra.igor.terms.core.TermAnd      3
    routaverra.igor.terms.core.TermNot      4
@@ -442,9 +444,14 @@
 (defmethod render-node [routaverra.igor.terms.core.TermNot :latex] [node env]
   (str "\\neg " (render-child node (first (:argv node)) env)))
 
-(defmethod render-node [routaverra.igor.terms.introduced.TermImplies :latex] [node env]
-  (let [[ante conseq] (:argv node)]
-    (str (render-child node ante env) " \\Rightarrow " (render-child node conseq env))))
+(defmethod render-node [routaverra.igor.terms.introduced.TermImplication :latex] [node env]
+  (render-children node " \\Rightarrow " env))
+
+(defmethod render-node [routaverra.igor.terms.introduced.TermReverseImplication :latex] [node env]
+  (render-children node " \\Leftarrow " env))
+
+(defmethod render-node [routaverra.igor.terms.introduced.TermCoimplication :latex] [node env]
+  (render-children node " \\Leftrightarrow " env))
 
 ;; --- Conditional ---
 (defmethod render-node [routaverra.igor.terms.core.TermIf :latex] [node env]
@@ -709,9 +716,14 @@
 (defmethod render-node [routaverra.igor.terms.core.TermNot :unicode] [node env]
   (str "\u00AC" (render-child node (first (:argv node)) env)))
 
-(defmethod render-node [routaverra.igor.terms.introduced.TermImplies :unicode] [node env]
-  (let [[ante conseq] (:argv node)]
-    (str (render-child node ante env) " \u21D2 " (render-child node conseq env))))
+(defmethod render-node [routaverra.igor.terms.introduced.TermImplication :unicode] [node env]
+  (render-children node " \u21D2 " env))
+
+(defmethod render-node [routaverra.igor.terms.introduced.TermReverseImplication :unicode] [node env]
+  (render-children node " \u21D0 " env))
+
+(defmethod render-node [routaverra.igor.terms.introduced.TermCoimplication :unicode] [node env]
+  (render-children node " \u21D4 " env))
 
 ;; --- Conditional ---
 (defmethod render-node [routaverra.igor.terms.core.TermIf :unicode] [node env]

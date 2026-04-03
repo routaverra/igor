@@ -11,8 +11,7 @@
          greater-than less-than gte lte and* or* not*
          iff cond* contains?* count* max* min* nth*
          even?* odd* pos?* neg?* zero?* true?* false?*
-         modulo remainder abs* all-different
-         translate-comparator)
+         modulo remainder abs* all-different)
 
 (defn ground?
   "Returns true if x is a ground value (literal number, boolean, or set of ground values)
@@ -42,7 +41,7 @@
   (decisions [self] (api/unify-argv-decisions self))
   (bindings [self] (api/unify-argv-bindings self))
   (validate [self] (api/validate-domains self))
-  (translate [self] (api/translate-nary-operation "+" (map protocols/translate (:argv self))))
+  (translate [self] (api/translate-associative-chain "+" (map protocols/translate (:argv self))))
   (evaluate [self solution] (apply clojure.core/+ (api/eval-argv self solution))))
 
 (defrecord TermProduct [argv]
@@ -53,7 +52,7 @@
   (decisions [self] (api/unify-argv-decisions self))
   (bindings [self] (api/unify-argv-bindings self))
   (validate [self] (api/validate-domains self))
-  (translate [self] (api/translate-nary-operation "*" (map protocols/translate (:argv self))))
+  (translate [self] (api/translate-associative-chain "*" (map protocols/translate (:argv self))))
   (evaluate [self solution] (apply clojure.core/* (api/eval-argv self solution))))
 
 (defrecord TermMinus [argv]
@@ -64,7 +63,7 @@
   (decisions [self] (api/unify-argv-decisions self))
   (bindings [self] (api/unify-argv-bindings self))
   (validate [self] (api/validate-domains self))
-  (translate [self] (api/translate-nary-operation "-" (map protocols/translate (:argv self))))
+  (translate [self] (api/translate-associative-chain "-" (map protocols/translate (:argv self))))
   (evaluate [self solution] (apply clojure.core/- (api/eval-argv self solution))))
 
 (defrecord TermDivide [argv]
@@ -75,7 +74,7 @@
   (decisions [self] (api/unify-argv-decisions self))
   (bindings [self] (api/unify-argv-bindings self))
   (validate [self] (api/validate-domains self))
-  (translate [self] (api/translate-nary-operation "div" (map protocols/translate (:argv self))))
+  (translate [self] (api/translate-associative-chain "div" (map protocols/translate (:argv self))))
   (evaluate [self solution] (apply quot (api/eval-argv self solution))))
 
 (defrecord TermInc [argv]
@@ -222,7 +221,7 @@
   (decisions [self] (api/unify-argv-decisions self))
   (bindings [self] (api/unify-argv-bindings self))
   (validate [self] (api/validate-domains self))
-  (translate [self] (api/translate-nary-operation "/\\" (map protocols/translate (:argv self))))
+  (translate [self] (api/translate-associative-chain "/\\" (map protocols/translate (:argv self))))
   (evaluate [self solution] (clojure.core/every? identity (api/eval-argv self solution))))
 
 (defn conjunctive? [x] (clojure.core/= (type x) TermAnd))
@@ -235,7 +234,7 @@
   (decisions [self] (api/unify-argv-decisions self))
   (bindings [self] (api/unify-argv-bindings self))
   (validate [self] (api/validate-domains self))
-  (translate [self] (api/translate-nary-operation "\\/" (map protocols/translate (:argv self))))
+  (translate [self] (api/translate-associative-chain "\\/" (map protocols/translate (:argv self))))
   (evaluate [self solution] (boolean (clojure.core/some identity (api/eval-argv self solution)))))
 
 (defrecord TermGreaterThan [argv]
@@ -246,7 +245,7 @@
   (decisions [self] (api/unify-argv-decisions self))
   (bindings [self] (api/unify-argv-bindings self))
   (validate [self] (api/validate-domains self))
-  (translate [self] (translate-comparator self ">" greater-than))
+  (translate [self] (api/translate-pairwise-chain self ">" greater-than and*))
   (evaluate [self solution] (apply clojure.core/> (api/eval-argv self solution))))
 
 (defrecord TermLessThan [argv]
@@ -257,7 +256,7 @@
   (decisions [self] (api/unify-argv-decisions self))
   (bindings [self] (api/unify-argv-bindings self))
   (validate [self] (api/validate-domains self))
-  (translate [self] (translate-comparator self "<" less-than))
+  (translate [self] (api/translate-pairwise-chain self "<" less-than and*))
   (evaluate [self solution] (apply clojure.core/< (api/eval-argv self solution))))
 
 (defrecord TermGreaterThanOrEqualTo [argv]
@@ -277,7 +276,7 @@
   (decisions [self] (api/unify-argv-decisions self))
   (bindings [self] (api/unify-argv-bindings self))
   (validate [self] (api/validate-domains self))
-  (translate [self] (translate-comparator self ">=" gte))
+  (translate [self] (api/translate-pairwise-chain self ">=" gte and*))
   (evaluate [self solution] (apply clojure.core/>= (api/eval-argv self solution))))
 
 (defrecord TermLessThanOrEqualTo [argv]
@@ -288,7 +287,7 @@
   (decisions [self] (api/unify-argv-decisions self))
   (bindings [self] (api/unify-argv-bindings self))
   (validate [self] (api/validate-domains self))
-  (translate [self] (translate-comparator self "<=" lte))
+  (translate [self] (api/translate-pairwise-chain self "<=" lte and*))
   (evaluate [self solution] (apply clojure.core/<= (api/eval-argv self solution))))
 
 (defrecord TermNot [argv]
@@ -324,7 +323,7 @@
                                     (apply clojure.set/intersection)))
       (throw (ex-info "equality testing requires consistent types" {})))
     self)
-  (translate [self] (translate-comparator self "=" equals))
+  (translate [self] (api/translate-pairwise-chain self "=" equals and*))
   (evaluate [self solution] (apply clojure.core/= (api/eval-argv self solution))))
 
 (defn condititonal-return-exprs [self]
@@ -720,15 +719,4 @@
      (->TermSome (:id local-decision)
                  [local-decision set-expr (constraint-fn local-decision)]))))
 
-;; --- translate-comparator (moved from api) ---
-
-(defn translate-comparator [self op constructor-fn]
-  (case (clojure.core/count (:argv self))
-    1 (protocols/translate true)
-    2 (apply api/translate-binary-operation op (map protocols/translate (:argv self)))
-    (->> (:argv self)
-         (partition 2 1)
-         (map (fn [[a b]] (constructor-fn a b)))
-         (apply and*)
-         protocols/translate)))
 

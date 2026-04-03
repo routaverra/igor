@@ -176,7 +176,7 @@ Each letter stands for a different digit (0–9). The goal: find the unique digi
       cluster-free
       (i/every? x
         (fn [a]
-          (i/implies (i/contains? x (i/mod (i/+ a 1) 12))
+          (i/?> (i/contains? x (i/mod (i/+ a 1) 12))
             (i/not (i/contains? x (i/mod (i/+ a 2) 12))))))]
   (get (i/satisfy cluster-free) x))
 ;; => e.g. #{0 1 3 4 6 7 9 10}
@@ -204,7 +204,7 @@ Keywords work with sets too — `fresh-set` auto-detects keyword domains:
 ;; Select a subset of features with dependency constraints
 (let [features (i/fresh-set #{:wifi :bluetooth :nfc :gps :lte})
       sol (i/satisfy (i/and (i/contains? features :wifi)
-                            (i/implies (i/contains? features :lte)
+                            (i/?> (i/contains? features :lte)
                                        (i/contains? features :gps))
                             (i/<= (i/count features) 3)
                             (i/contains? features :lte)))]
@@ -218,8 +218,8 @@ Different keyword variables can draw from different domains in the same problem:
 ;; Product configuration — constraints read like business rules
 (let [color (i/fresh-keyword #{:red :blue :black})
       trim  (i/fresh-keyword #{:sport :luxury :base})
-      sol (i/satisfy (i/and (i/implies (i/= trim :sport) (i/not= color :blue))
-                            (i/implies (i/= trim :luxury) (i/= color :black))
+      sol (i/satisfy (i/and (i/?> (i/= trim :sport) (i/not= color :blue))
+                            (i/?> (i/= trim :luxury) (i/= color :black))
                             (i/= trim :sport)))]
   {:color (sol color) :trim (sol trim)})
 ;; => {:color :red, :trim :sport}
@@ -365,7 +365,9 @@ In the tables below, `T` denotes a polymorphic type and `*` denotes variadic (tw
 | `and` | Conjunction | Bool* | Bool | `clojure.core` |
 | `or` | Disjunction | Bool* | Bool | `clojure.core` |
 | `not` | Negation | Bool | Bool | `clojure.core` |
-| `implies` | Implication (test -> body) | Bool, Bool | Bool | — |
+| `?>` | Implication (`->`) | Bool+ | Bool | — |
+| `<?` | Reverse implication (`<-`) | Bool+ | Bool | — |
+| `<?>` | Coimplication (`<->`) | Bool+ | Bool | — |
 | `every?` | `(every? set-expr (fn [elem] bool-expr))` — universal quantification | Set, (T -> Bool) | Bool | `clojure.core` |
 | `some` | `(some set-expr (fn [elem] bool-expr))` — existential quantification | Set, (T -> Bool) | Bool | `clojure.core` |
 

@@ -5,6 +5,8 @@
             [routaverra.igor.api :as api]
             [routaverra.igor.terms.core :as terms.core]))
 
+(declare ?>* <?* <?>*)
+
 (defrecord TermImage [bind-sym argv]
   protocols/IExpress
   (write [_self] (let [[local-decision set-expr generator-expr] argv]
@@ -39,21 +41,50 @@
                    (api/eval-arg generator-expr (assoc solution local-decision elem)))
                  s)))))
 
-(defrecord TermImplies [argv]
+(defrecord TermImplication [argv]
   protocols/IExpress
-  (write [_self] (apply list 'implies (map protocols/write argv)))
+  (write [_self] (apply list '?> (map protocols/write argv)))
   (codomain [self] {types/Bool self})
-  (domainv [self] (take 2 (repeat {types/Bool self})))
+  (domainv [self] (repeat {types/Bool self}))
   (decisions [self] (api/unify-argv-decisions self))
   (bindings [self] (api/unify-argv-bindings self))
   (validate [self] (api/validate-domains self))
-  (translate [self] (apply
-                     api/translate-binary-operation
-                     "->"
-                     (map protocols/translate (:argv self))))
+  (translate [self] (api/translate-pairwise-chain self "->" ?>* terms.core/and*))
   (evaluate [self solution]
-    (let [[test body] (api/eval-argv self solution)]
-      (clojure.core/or (clojure.core/not test) body))))
+    (let [args (api/eval-argv self solution)]
+      (clojure.core/every?
+       (fn [[l r]] (clojure.core/or (clojure.core/not l) r))
+       (partition 2 1 args)))))
+
+(defrecord TermReverseImplication [argv]
+  protocols/IExpress
+  (write [_self] (apply list '<? (map protocols/write argv)))
+  (codomain [self] {types/Bool self})
+  (domainv [self] (repeat {types/Bool self}))
+  (decisions [self] (api/unify-argv-decisions self))
+  (bindings [self] (api/unify-argv-bindings self))
+  (validate [self] (api/validate-domains self))
+  (translate [self] (api/translate-pairwise-chain self "<-" <?* terms.core/and*))
+  (evaluate [self solution]
+    (let [args (api/eval-argv self solution)]
+      (clojure.core/every?
+       (fn [[l r]] (clojure.core/or l (clojure.core/not r)))
+       (partition 2 1 args)))))
+
+(defrecord TermCoimplication [argv]
+  protocols/IExpress
+  (write [_self] (apply list '<?> (map protocols/write argv)))
+  (codomain [self] {types/Bool self})
+  (domainv [self] (repeat {types/Bool self}))
+  (decisions [self] (api/unify-argv-decisions self))
+  (bindings [self] (api/unify-argv-bindings self))
+  (validate [self] (api/validate-domains self))
+  (translate [self] (api/translate-pairwise-chain self "<->" <?>* terms.core/and*))
+  (evaluate [self solution]
+    (let [args (api/eval-argv self solution)]
+      (clojure.core/every?
+       (fn [[l r]] (clojure.core/= l r))
+       (partition 2 1 args)))))
 
 ;; --- Constructor functions ---
 
@@ -67,7 +98,16 @@
      (->TermImage (:id local-decision)
                   [local-decision set-expr (generator-fn local-decision)]))))
 
-(defn implies* [test body]
-  (if (clojure.core/every? terms.core/ground? [test body])
-    (protocols/evaluate (->TermImplies [test body]) {})
-    (api/cacheing-validate (->TermImplies [test body]))))
+(defn- ground-or-validate [term ground?-check]
+  (if ground?-check
+    (protocols/evaluate term {})
+    (api/cacheing-validate term)))
+
+(defn ?>* [& args]
+  (ground-or-validate (->TermImplication (vec args)) (clojure.core/every? terms.core/ground? args)))
+
+(defn <?* [& args]
+  (ground-or-validate (->TermReverseImplication (vec args)) (clojure.core/every? terms.core/ground? args)))
+
+(defn <?>* [& args]
+  (ground-or-validate (->TermCoimplication (vec args)) (clojure.core/every? terms.core/ground? args)))

@@ -126,7 +126,7 @@
   (testing "feature selection with keyword sets"
     (let [features (i/fresh-set #{:wifi :bluetooth :nfc :gps :lte})
           sol (i/satisfy (i/and (i/contains? features :wifi)
-                                (i/implies (i/contains? features :lte)
+                                (i/?> (i/contains? features :lte)
                                            (i/contains? features :gps))
                                 (i/<= (i/count features) 3)
                                 (i/contains? features :lte)))
@@ -140,8 +140,8 @@
   (testing "configuration with multiple keyword domains"
     (let [color (i/fresh-keyword #{:red :blue :black})
           trim  (i/fresh-keyword #{:sport :luxury :base})
-          sol (i/satisfy (i/and (i/implies (i/= trim :sport) (i/not= color :blue))
-                                (i/implies (i/= trim :luxury) (i/= color :black))
+          sol (i/satisfy (i/and (i/?> (i/= trim :sport) (i/not= color :blue))
+                                (i/?> (i/= trim :luxury) (i/= color :black))
                                 (i/= trim :sport)))]
       (is (= :sport (sol trim)))
       (is (not= :blue (sol color))))))
