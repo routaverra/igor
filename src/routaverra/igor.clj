@@ -13,8 +13,8 @@
             [routaverra.igor.extensional :as extensional]
             [routaverra.igor.notation :as notation]
             [routaverra.igor.alternatives :as alternatives]
-            [routaverra.igor.soft :as soft]
             [routaverra.igor.cache :as cache]
+            [routaverra.igor.compare :as compare]
             [clojure.walk :as walk]))
 
 (def fresh api/fresh)
@@ -164,7 +164,7 @@
 (def alternatives alternatives/alternatives)
 (def choice alternatives/choice)
 
-;; --- Soft constraints ---
+;; --- Constraint comparison ---
 
-(def soft soft/soft)
-(def violation soft/violation)
+(def equivalent? compare/equivalent?)
+(def stricter? compare/stricter?)

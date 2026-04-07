@@ -51,6 +51,24 @@
              (let [y (i/fresh-int (range 10))]
                (cache/canonical-form (i/and (i/>= y 0) (i/<= y 9)))))))))
 
+(deftest cache-key-commutative-test
+  (testing "(i/and a b) and (i/and b a) produce the same cache key after normalize"
+    (let [x (i/fresh-int (range 10))
+          y (i/fresh-int (range 10))
+          a (i/> x 0)
+          b (i/< y 5)]
+      (is (= (cache/cache-key (i/and a b) nil {})
+             (cache/cache-key (i/and b a) nil {}))))))
+
+(deftest cache-key-commutative-under-minimize-test
+  (testing "commutativity holds under minimize too"
+    (let [x (i/fresh-int (range 10))
+          y (i/fresh-int (range 10))
+          a (i/> x 0)
+          b (i/< y 5)]
+      (is (= (cache/cache-key (i/and a b) x {:direction :minimize})
+             (cache/cache-key (i/and b a) x {:direction :minimize}))))))
+
 ;; --- canonical-form: decision types and domains ---
 
 (deftest canonical-form-int-different-domains-test

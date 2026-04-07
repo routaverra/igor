@@ -4,62 +4,40 @@
    depth-first encounter indices, making the key stable across REPL
    re-evaluations and JVM restarts.
 
+   The constraint half of the key is run through `normalize` first so that
+   compositions equivalent under the lattice laws (commutativity, idempotence,
+   absorption, identity, annihilation) hash to the same entry.
+
    The cache stores a *set* of known solutions per canonical model, plus a
    :complete? flag indicating whether the solver proved completion (all
    solutions found / optimality proved). Every solve call adds to this set
    (union semantics), so partial results from timeouts accumulate across
    invocations."
-  (:require [routaverra.igor.api :as api]
-            [clojure.walk :as walk]
+  (:require [routaverra.igor.canonical :as canonical]
+            [routaverra.igor.normalize :as normalize]
             [clojure.java.io :as io]))
 
 (def ^:dynamic *enabled* true)
 (def ^:dynamic *cache-dir* ".igor/cache")
 
-(defn encounter-ordered-decisions
-  "Walks expression trees depth-first, returns decisions in order of
-   first encounter. Each decision appears exactly once."
-  [& exprs]
-  (let [seen (volatile! #{})
-        result (volatile! [])]
-    (walk/prewalk
-     (fn [node]
-       (when (and (api/decision? node)
-                  (not (contains? @seen (:id node))))
-         (vswap! seen conj (:id node))
-         (vswap! result conj node))
-       node)
-     (vec exprs))
-    @result))
-
-(defn canonical-form
-  "Produces a canonical representation of constraint expressions where
-   Decision variables are replaced with [::var idx domain type] vectors
-   based on depth-first encounter order. Independent of gensym IDs."
-  [& exprs]
-  (let [id->idx (volatile! {})
-        counter (volatile! -1)]
-    (walk/prewalk
-     (fn [node]
-       (if (api/decision? node)
-         (let [idx (or (get @id->idx (:id node))
-                       (let [c (vswap! counter clojure.core/inc)]
-                         (vswap! id->idx assoc (:id node) c)
-                         c))]
-           [::var idx
-            (some-> (:routaverra.igor.api/range (meta node)) sort vec)
-            (:routaverra.igor.api/type (meta node))])
-         node))
-     (vec exprs))))
+;; Re-exported for backwards-compat with callers (and tests) that
+;; accessed canonicalization through the cache namespace.
+(def encounter-ordered-decisions canonical/encounter-ordered-decisions)
+(def canonical-form canonical/canonical-form)
 
 (defn cache-key
   "Returns a hex string hash for a canonical model.
    The key captures the constraint structure, objective, and solve direction,
-   but NOT all? or async? — those are execution modes, not model identity."
+   but NOT all? or async? — those are execution modes, not model identity.
+
+   The constraint is run through `normalize` before canonicalization so that
+   compositions equivalent under the lattice laws hash to the same entry.
+   The objective is intentionally not normalized."
   [constraint objective opts]
-  (let [form (if objective
-               (canonical-form constraint objective)
-               (canonical-form constraint))
+  (let [normalized (normalize/normalize constraint)
+        form (if objective
+               (canonical/canonical-form normalized objective)
+               (canonical/canonical-form normalized))
         key-data [form (:direction opts)]]
     (format "%016x" (hash key-data))))
 
