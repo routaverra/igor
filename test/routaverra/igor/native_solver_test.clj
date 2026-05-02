@@ -6,6 +6,7 @@
 
 (def native {:solver :native})
 
+
 (defn verify-both-backends
   "Solve with both backends and verify both produce valid solutions."
   [constraint & {:keys [all?]}]

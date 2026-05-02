@@ -552,7 +552,9 @@ All nodes are 0-indexed.
 
 | Option | Description |
 |--------|-------------|
+| `:solver` | `:minizinc` (default) or `:native` |
 | `:async?` | Return a `core.async` channel |
+| `:timeout-ms` | Time limit in milliseconds (MiniZinc only) |
 
 ```clojure
 ;; Debug: write generated .mzn to scratch/mzn instead of solving
@@ -582,8 +584,38 @@ Both are constraint programming tools for Clojure; they target different problem
 
 Use Igor when you need optimization, global constraints, or set/graph reasoning. Use core.logic for relational/bidirectional programming and problems that fit miniKanren's interleaving search.
 
+## Solver Backends
+
+Igor supports two solver backends:
+
+- **MiniZinc** (default) — compiles constraints to MiniZinc and solves via Gecode. Requires MiniZinc on PATH.
+- **Native** — pure Clojure propagator-based solver. No external dependencies. See `src/routaverra/igor/native/README.md`.
+
+Select a backend per-call via opts:
+
+```clojure
+(i/satisfy constraint {:solver :native})
+(i/satisfy constraint {:solver :minizinc})  ;; default
+```
+
+Or set a default for an entire block:
+
+```clojure
+(binding [i/*solver* :native]
+  (i/satisfy constraint))
+```
+
 ## Running Tests
 
+Two test configurations: the default suite uses MiniZinc, the native suite binds `i/*solver*` to `:native` so all existing tests run against the native solver without modification.
+
 ```bash
-clj -A:test -m kaocha.runner
+# Default suite (MiniZinc backend)
+clj -M:test -m kaocha.runner
+
+# Native solver suite — same tests, native backend
+clj -M:test -m kaocha.runner --config-file tests-native.edn
+
+# Both back-to-back
+clj -M:test -m kaocha.runner && clj -M:test -m kaocha.runner --config-file tests-native.edn
 ```

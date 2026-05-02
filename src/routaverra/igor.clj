@@ -24,17 +24,24 @@
 (def fresh-keyword api/fresh-keyword)
 (def bind api/bind)
 
+(def ^:dynamic *solver* nil)
+
+(defn- merge-solver-opts [opts]
+  (cond-> opts
+    (clojure.core/and *solver* (clojure.core/not (clojure.core/contains? opts :solver)))
+    (assoc :solver *solver*)))
+
 (defn satisfy
   ([term]
    (satisfy term {}))
   ([term opts]
-   (solver/solve opts term nil)))
+   (solver/solve (merge-solver-opts opts) term nil)))
 
 (defn satisfy-all
   ([term]
    (satisfy-all term {}))
   ([term opts]
-   (solver/solve (assoc opts :all? true) term nil)))
+   (solver/solve (merge-solver-opts (assoc opts :all? true)) term nil)))
 
 (defn resolve
   "Walks form, replacing decision variables with solved values and evaluating
@@ -60,13 +67,13 @@
   ([obj constraint]
    (maximize obj constraint {}))
   ([obj constraint opts]
-   (solver/solve opts constraint obj)))
+   (solver/solve (merge-solver-opts opts) constraint obj)))
 
 (defn minimize
   ([obj constraint]
    (minimize obj constraint {}))
   ([obj constraint opts]
-   (solver/solve (assoc opts :direction :minimize) constraint obj)))
+   (solver/solve (merge-solver-opts (assoc opts :direction :minimize)) constraint obj)))
 
 (def decision? api/decision?)
 

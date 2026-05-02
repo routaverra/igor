@@ -1234,11 +1234,9 @@
 ;; ---- Fallback for unsupported terms ----
 
 (defmethod compile-constraint :default [term kw-map]
-  ;; For terms we don't handle (e.g., set operations, regular/cost-regular),
-  ;; return empty — they won't propagate but won't crash either.
-  ;; The search will need to find solutions by enumeration.
-  [])
+  (throw (ex-info (str "Native solver does not support constraint type: " (type term))
+                  {:term-type (type term)})))
 
 (defmethod compile-defining-equality :default [z term kw-map]
-  ;; Unknown defining equality — no propagation
-  [])
+  (throw (ex-info (str "Native solver does not support term type in defining equality: " (type term))
+                  {:term-type (type term)})))
