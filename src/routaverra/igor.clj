@@ -14,7 +14,6 @@
             [routaverra.igor.notation :as notation]
             [routaverra.igor.alternatives :as alternatives]
             [routaverra.igor.cache :as cache]
-            [routaverra.igor.compare :as compare]
             [clojure.walk :as walk]))
 
 (def fresh api/fresh)
@@ -162,8 +161,3 @@
 
 (def alternatives alternatives/alternatives)
 (def choice alternatives/choice)
-
-;; --- Constraint comparison ---
-
-(def equivalent? compare/equivalent?)
-(def stricter? compare/stricter?)

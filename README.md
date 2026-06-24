@@ -522,31 +522,6 @@ All nodes are 0-indexed.
 | `decision?` | `(decision? x)` — true if `x` is a decision variable |
 | `unresolved?` | `(unresolved? x)` — true if `x` contains unsolved decision variables |
 
-### Comparing Constraints
-
-Two predicates for asking questions about constraints without invoking the solver. Useful for redundancy detection during interactive composition, refactoring sanity checks, and explaining why a new constraint didn't change the answer.
-
-| Function | Description |
-|----------|-------------|
-| `equivalent?` | `(equivalent? c1 c2)` — do `c1` and `c2` accept the same solutions? |
-| `stricter?` | `(stricter? c1 c2)` — does every solution to `c1` also satisfy `c2`? |
-
-`equivalent?` ignores argument order in `and`/`or`, duplicate conjuncts, and trivially-implied subterms. Constraints equivalent for deeper reasons (arithmetic identities, etc.) may still compare unequal.
-
-`stricter?` is **conservative**: `true` is always correct, but `false` means "I couldn't prove it structurally", not "the answer is no." It handles the obvious cases — identical constraints, conjunct/disjunct membership, and same-variable integer-bound comparisons (e.g., `(> x 10)` is stricter than `(> x 5)`). For a complete check, solve `(i/and c1 (i/not c2))` and look for unsatisfiability.
-
-```clojure
-(let [x (i/fresh-int (range 100))]
-  [(i/equivalent? (i/and (i/> x 0) (i/< x 10))
-                  (i/and (i/< x 10) (i/> x 0)))   ;; true — order doesn't matter
-   (i/stricter?  (i/> x 10) (i/> x 5))            ;; true — > 10 is a tighter bound
-   (i/stricter?  (i/and (i/> x 0) (i/< x 5))
-                 (i/> x 0))                        ;; true — adding (< x 5) can only narrow
-   (i/stricter?  (i/and (i/> x 5) (i/< x 10))
-                 (i/> x 0))])                      ;; true — implied by the > x 5 leg
-;; => [true true true true]
-```
-
 ## Solver Options
 
 | Option | Description |
