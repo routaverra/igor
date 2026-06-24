@@ -43,3 +43,74 @@ See `specs/constraint-lattice-programming.md` §2 for the full motivation.
 
 ### Compositional unit metadata (deferred)
 Spec §3 sketches a metadata-based way to mark named compositional units (`(i/relax my-constraints in-range)` removing the bounded-x clause as a unit). Defer until a real workflow asks for named relaxation; in the meantime, users can hold their own structure via vars.
+
+# Deferred type-system extensions (NOT for current release)
+
+Governing principle: the public core is a CLOSED, TOTAL algebra over
+homogeneous domains — every shadowed operator is defined on every value
+in a variable's domain. Extensions below add partiality or structure;
+each is introduced LATER as a deliberate, parametric layer over the
+closed core, never by weakening the core. Order matters: Maybe first,
+List second (it is built from Maybe). String constraints are rejected
+for the foreseeable future (see bottom).
+
+## Maybe τ  — absence as a type  [highest priority, do first]
+Models "a value from domain D, or absent" (e.g. note-or-rest = Maybe Pitch).
+
+- Type constructor over any base type: `(maybe (domain D))`.
+- Distinct type from τ. Base operators (+, <, all-different, ...) are
+  NOT defined on `Maybe τ`. You must ELIMINATE the Maybe first — via
+  if / cond / alternatives / equality — into the `just` branch, where
+  you are back in total-τ land and every operator works. This makes the
+  "constraints read like Clojure" property hold by TYPING, not by
+  remembering to guard.
+- Likely encoding: ride on MiniZinc's native optional variables
+  (`var opt`) — a presence-bool plus a value-var whose constraints are
+  conditioned on presence. Confirm before committing to a hand-rolled
+  presence-bool encoding.
+- Lifting questions (single coherent question "how do globals lift over
+  Maybe", not per-operator special cases):
+  - `all-different` over `Maybe τ` ranges over the PRESENT (`just`)
+    values only; absent slots never collide. (Music needs many rests.)
+  - `regular` / `cost-regular` over a `Maybe` sequence is a FEATURE:
+    a DFA over pitches-and-rests is rhythmic/phrase structure.
+  - Notation rendering needs a glyph for absence.
+
+### REJECTED alternative: absence-as-tag (flat sentinel domain)
+Encoding absence as a sentinel member of a flat domain (e.g.
+`int(0..11) | :rest`) is rejected. Because keywords encode to ints
+underneath, `(i/+ x 2)` where x resolves to `:rest` would SILENTLY
+compute on the sentinel's int code and return garbage as a "valid"
+solution — the worst failure mode for this library. Absence must be a
+type (Maybe), not a tag.
+
+## List τ / variable-length sequences  [second; built on Maybe]
+- Fixed-length homogeneous list already exists: `(vec (repeatedly n
+  #(domain D)))`. A `list` constructor there is pure sugar (legibility,
+  not power) — low priority.
+- Variable-length (length is itself a decision variable) is the real
+  feature, and it is `Maybe` wearing a prefix constraint: an array of
+  `n` slots of `Maybe τ` + a length var + "present slots form a prefix
+  (no gaps)". So it is DOWNSTREAM of Maybe — do not re-derive absence
+  inside List.
+- Performance footgun to document: the solver reasons about HOW MANY
+  elements exist before WHAT they are. Ship with guidance to bound the
+  max length tightly, as you would never leave an int domain unbounded.
+
+## Constructor surface for the above
+Prefer wrapper constructors — `(maybe (domain D))`, `(list-of (domain D)
+{:max n})` — that read as type constructors and leave `domain` /
+`universe` / `bool` untouched. The wrapper form IS the parametricity
+made visible. Do not fold these into `domain`.
+
+## String constraints  — REJECTED as in-scope; possible separate project
+A `clojure.string`-style constraint library (`starts-with?`, etc.) is
+NOT a library addition. Standard MiniZinc has no string decision
+variables; string-constraint solving is its own research subfield
+(cf. G-Strings/Gecode, the Amadini "MiniZinc with Strings" extension,
+SMT string theories). The fixed-length case is largely already
+reachable via `regular` / `table` / `nth` over char-as-int domains; the
+powerful unbounded case is a research contribution, not a side feature.
+Note: phonotactic/conlang use cases are regular languages — model them
+with `regular` over a phoneme domain rather than a string engine. If a
+genuine need survives that test, it is a future paper, not a patch.
