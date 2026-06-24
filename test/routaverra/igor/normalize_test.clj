@@ -10,13 +10,13 @@
 
 (deftest idempotence-and-test
   (testing "(and a a) normalizes to a"
-    (let [x (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
           a (i/> x 5)]
       (is (= a (normalize (i/and a a)))))))
 
 (deftest idempotence-or-test
   (testing "(or a a) normalizes to a"
-    (let [x (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
           a (i/> x 5)]
       (is (= a (normalize (i/or a a)))))))
 
@@ -26,8 +26,8 @@
 
 (deftest commutativity-and-test
   (testing "(and a b) and (and b a) normalize to the same form"
-    (let [x (i/fresh-int (range 10))
-          y (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
+          y (i/domain (range 10))
           a (i/> x 5)
           b (i/< y 5)]
       (is (= (normalize (i/and a b))
@@ -35,8 +35,8 @@
 
 (deftest commutativity-or-test
   (testing "(or a b) and (or b a) normalize to the same form"
-    (let [x (i/fresh-int (range 10))
-          y (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
+          y (i/domain (range 10))
           a (i/> x 5)
           b (i/< y 5)]
       (is (= (normalize (i/or a b))
@@ -44,9 +44,9 @@
 
 (deftest commutativity-three-args-test
   (testing "all permutations of three conjuncts normalize to the same form"
-    (let [x (i/fresh-int (range 10))
-          y (i/fresh-int (range 10))
-          z (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
+          y (i/domain (range 10))
+          z (i/domain (range 10))
           a (i/> x 5)
           b (i/< y 5)
           c (i/= z 3)
@@ -60,13 +60,13 @@
 
 (deftest identity-and-true-test
   (testing "(and a true) normalizes to a"
-    (let [x (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
           a (i/> x 5)]
       (is (= a (normalize (i/and a true)))))))
 
 (deftest identity-or-false-test
   (testing "(or a false) normalizes to a"
-    (let [x (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
           a (i/> x 5)]
       (is (= a (normalize (i/or a false)))))))
 
@@ -76,13 +76,13 @@
 
 (deftest annihilation-and-false-test
   (testing "(and a false) normalizes to false"
-    (let [x (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
           a (i/> x 5)]
       (is (= false (normalize (i/and a false)))))))
 
 (deftest annihilation-or-true-test
   (testing "(or a true) normalizes to true"
-    (let [x (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
           a (i/> x 5)]
       (is (= true (normalize (i/or a true)))))))
 
@@ -92,16 +92,16 @@
 
 (deftest absorption-and-test
   (testing "(and a (or a b)) normalizes to a"
-    (let [x (i/fresh-int (range 10))
-          y (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
+          y (i/domain (range 10))
           a (i/> x 5)
           b (i/< y 5)]
       (is (= a (normalize (i/and a (i/or a b))))))))
 
 (deftest absorption-or-test
   (testing "(or a (and a b)) normalizes to a"
-    (let [x (i/fresh-int (range 10))
-          y (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
+          y (i/domain (range 10))
           a (i/> x 5)
           b (i/< y 5)]
       (is (= a (normalize (i/or a (i/and a b))))))))
@@ -112,9 +112,9 @@
 
 (deftest flattening-and-test
   (testing "(and a (and b c)) and (and a b c) normalize to the same form"
-    (let [x (i/fresh-int (range 10))
-          y (i/fresh-int (range 10))
-          z (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
+          y (i/domain (range 10))
+          z (i/domain (range 10))
           a (i/> x 5)
           b (i/< y 5)
           c (i/= z 3)]
@@ -123,9 +123,9 @@
 
 (deftest flattening-or-test
   (testing "(or a (or b c)) and (or a b c) normalize to the same form"
-    (let [x (i/fresh-int (range 10))
-          y (i/fresh-int (range 10))
-          z (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
+          y (i/domain (range 10))
+          z (i/domain (range 10))
           a (i/> x 5)
           b (i/< y 5)
           c (i/= z 3)]
@@ -138,8 +138,8 @@
 
 (deftest recursion-through-if-test
   (testing "and/or inside an if test still gets normalized"
-    (let [x (i/fresh-int (range 10))
-          y (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
+          y (i/domain (range 10))
           a (i/> x 5)
           b (i/< y 5)
           form-1 (i/if (i/and a b) 1 2)
@@ -152,13 +152,13 @@
 
 (deftest pass-through-equals-test
   (testing "TermEquals passes through normalize unchanged structurally"
-    (let [x (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
           e (i/= x 5)]
       (is (= e (normalize e))))))
 
 (deftest pass-through-decision-test
   (testing "Decision leaf passes through normalize unchanged"
-    (let [x (i/fresh-int (range 10))]
+    (let [x (i/domain (range 10))]
       (is (= x (normalize x))))))
 
 (deftest pass-through-primitive-test
@@ -174,8 +174,8 @@
 
 (deftest stability-test
   (testing "normalize is idempotent: (normalize (normalize x)) = (normalize x)"
-    (let [x (i/fresh-int (range 10))
-          y (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
+          y (i/domain (range 10))
           a (i/> x 5)
           b (i/< y 5)
           forms [a
@@ -193,15 +193,15 @@
 
 (deftest result-type-test
   (testing "normalize result is a TermAnd when multiple distinct conjuncts remain"
-    (let [x (i/fresh-int (range 10))
-          y (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
+          y (i/domain (range 10))
           a (i/> x 5)
           b (i/< y 5)
           result (normalize (i/and a b))]
       (is (instance? TermAnd result))
       (is (= 2 (count (:argv result))))))
   (testing "normalize collapses to the single child when only one remains"
-    (let [x (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
           a (i/> x 5)]
       (is (= a (normalize (i/and a a a))))
       (is (= a (normalize (i/and a true true)))))))

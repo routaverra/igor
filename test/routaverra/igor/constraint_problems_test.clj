@@ -12,10 +12,10 @@
 (deftest send-more-money-test
   (testing "SEND + MORE = MONEY cryptarithmetic puzzle"
     (let [digits-domain (range 10)
-          s (i/fresh-int digits-domain) e (i/fresh-int digits-domain)
-          n (i/fresh-int digits-domain) d (i/fresh-int digits-domain)
-          m (i/fresh-int digits-domain) o (i/fresh-int digits-domain)
-          r (i/fresh-int digits-domain) y (i/fresh-int digits-domain)
+          s (i/domain digits-domain) e (i/domain digits-domain)
+          n (i/domain digits-domain) d (i/domain digits-domain)
+          m (i/domain digits-domain) o (i/domain digits-domain)
+          r (i/domain digits-domain) y (i/domain digits-domain)
           digits [s e n d m o r y]
           send  (i/+ (i/* s 1000) (i/* e 100) (i/* n 10) d)
           more  (i/+ (i/* m 1000) (i/* o 100) (i/* r 10) e)
@@ -40,9 +40,9 @@
 (deftest magic-square-3x3-test
   (testing "3x3 magic square"
     (let [cell-domain (range 1 10)
-          cells (vec (repeatedly 9 #(i/fresh-int cell-domain)))
+          cells (vec (repeatedly 9 #(i/domain cell-domain)))
           [a b c d e f g h k] cells
-          magic-sum (i/fresh-int (range 1 46))
+          magic-sum (i/domain (range 1 46))
           ;; rows, cols, diags all equal magic-sum
           sums (i/and
                 (i/= magic-sum (i/+ a b c))
@@ -72,13 +72,13 @@
 
 (deftest or-test
   (testing "or selects one of multiple alternatives"
-    (let [x (i/fresh-int (range 50))]
+    (let [x (i/domain (range 50))]
       (is (contains?
            #{3 7}
            (get (i/satisfy (i/or (i/= x 3) (i/= x 7))) x)))))
 
   (testing "or of many constraints"
-    (let [x (i/fresh-int (range 50))
+    (let [x (i/domain (range 50))
           constraint (apply i/or
                             (map (fn [v] (i/= x v)) [10 20 30]))]
       (is (contains? #{10 20 30}
@@ -86,8 +86,8 @@
 
 (deftest or-with-arithmetic-test
   (testing "or combined with arithmetic constraints"
-    (let [x (i/fresh-int (range 50))
-          y (i/fresh-int (range 50))
+    (let [x (i/domain (range 50))
+          y (i/domain (range 50))
           solution (i/satisfy
                     (i/and
                      (i/or (i/= x 5) (i/= x 10))
@@ -101,14 +101,14 @@
 
 (deftest maximize-basic-test
   (testing "maximize a bounded variable"
-    (let [x (i/fresh-int (range 101))
+    (let [x (i/domain (range 101))
           solution (i/maximize x (i/>= x 0))]
       (is (= 100 (get solution x))))))
 
 (deftest maximize-with-constraints-test
   (testing "maximize subject to multiple constraints"
-    (let [x (i/fresh-int (range 11))
-          y (i/fresh-int (range 11))
+    (let [x (i/domain (range 11))
+          y (i/domain (range 11))
           ;; maximize x+y where x,y in [0,10] and x+y <= 15
           constraint (i/<= (i/+ x y) 15)
           solution (i/maximize (i/+ x y) constraint)]
@@ -119,8 +119,8 @@
     ;; Items: weight/value pairs: (3,4), (4,5), (2,3), (5,7)
     ;; Capacity: 7
     (let [binary-domain (range 2)
-          x0 (i/fresh-int binary-domain) x1 (i/fresh-int binary-domain)
-          x2 (i/fresh-int binary-domain) x3 (i/fresh-int binary-domain)
+          x0 (i/domain binary-domain) x1 (i/domain binary-domain)
+          x2 (i/domain binary-domain) x3 (i/domain binary-domain)
           weight (i/+ (i/* 3 x0) (i/* 4 x1) (i/* 2 x2) (i/* 5 x3))
           value  (i/+ (i/* 4 x0) (i/* 5 x1) (i/* 3 x2) (i/* 7 x3))
           constraint (i/<= weight 7)
@@ -142,7 +142,7 @@
     (let [n 4
           col-domain (range n)
           ;; queens[i] = column of queen in row i
-          queens (vec (repeatedly n #(i/fresh-int col-domain)))
+          queens (vec (repeatedly n #(i/domain col-domain)))
           ;; all columns different
           col-diff (apply i/all-different queens)
           ;; no two queens on same diagonal
@@ -169,8 +169,8 @@
 (deftest set-partition-test
   (testing "partition a set into two disjoint subsets with equal cardinality"
     (let [domain (range 6)
-          a (i/fresh-set domain)
-          b (i/fresh-set domain)
+          a (i/universe domain)
+          b (i/universe domain)
           constraint (i/and
                       (i/= (i/union a b) (set domain))
                       (i/= (i/count (i/intersection a b)) 0)
@@ -187,7 +187,7 @@
 (deftest set-covering-test
   (testing "find minimal subset containing required elements"
     (let [domain (range 10)
-          s (i/fresh-set domain)
+          s (i/universe domain)
           ;; must contain 1, 3, 5, 7
           constraint (i/and
                       (i/contains? s 1)
@@ -203,9 +203,9 @@
 (deftest set-subset-chain-test
   (testing "chain of subsets: a subset b subset c"
     (let [domain (range 8)
-          a (i/fresh-set domain)
-          b (i/fresh-set domain)
-          c (i/fresh-set domain)
+          a (i/universe domain)
+          b (i/universe domain)
+          c (i/universe domain)
           constraint (i/and
                       (i/= (i/count a) 2)
                       (i/= (i/count b) 4)
@@ -226,7 +226,7 @@
 
 (deftest every?-all-elements-divisible-test
   (testing "every?: every element in set divisible by 3"
-    (let [s (i/fresh-set (range 30))
+    (let [s (i/universe (range 30))
           constraint (i/and
                       (i/= (i/count s) 4)
                       (i/every? (i/bind (range 30) s)
@@ -239,7 +239,7 @@
 
 (deftest image-test
   (testing "image: compute image of a function over a set"
-    (let [s (i/fresh-set (range 10))
+    (let [s (i/universe (range 10))
           ;; img = {x+1 : x in s}
           img (i/image (i/bind (range 10) s)
                 (fn [x] (i/+ x 1)))
@@ -256,8 +256,8 @@
 (deftest simultaneous-equations-test
   (testing "system of linear equations"
     ;; x + y = 10, x - y = 2  => x=6, y=4
-    (let [x (i/fresh-int (range 101))
-          y (i/fresh-int (range 101))
+    (let [x (i/domain (range 101))
+          y (i/domain (range 101))
           [x* y*] (i/solve
                     (i/and
                      (i/= (i/+ x y) 10)
@@ -268,9 +268,9 @@
 
 (deftest transitive-equality-test
   (testing "equality chains propagate: a=b, b=c => a=c"
-    (let [a (i/fresh-int (range 101))
-          b (i/fresh-int (range 101))
-          c (i/fresh-int (range 101))
+    (let [a (i/domain (range 101))
+          b (i/domain (range 101))
+          c (i/domain (range 101))
           [a* b* c*] (i/solve
                       (i/and
                        (i/= a 42)
@@ -283,8 +283,8 @@
 
 (deftest abs-value-test
   (testing "absolute value via i/abs"
-    (let [x (i/fresh-int (range -100 101))
-          abs-x (i/fresh-int (range 101))
+    (let [x (i/domain (range -100 101))
+          abs-x (i/domain (range 101))
           [x* abs-x*] (i/solve
                        (i/and
                         (i/= x -7)
@@ -299,9 +299,9 @@
 
 (deftest pythagorean-triple-test
   (testing "find a Pythagorean triple a^2 + b^2 = c^2"
-    (let [a (i/fresh-int (range 1 21))
-          b (i/fresh-int (range 1 21))
-          c (i/fresh-int (range 1 31))
+    (let [a (i/domain (range 1 21))
+          b (i/domain (range 1 21))
+          c (i/domain (range 1 31))
           constraint (i/and
                       (i/>= b a)     ;; b >= a to avoid duplicates
                       (i/>= c b)
@@ -314,7 +314,7 @@
 (deftest sum-of-consecutive-test
   (testing "find n consecutive integers that sum to target"
     ;; n consecutive starting from x: x + (x+1) + (x+2) = 12 => x=3
-    (let [x (i/fresh-int (range 100))
+    (let [x (i/domain (range 100))
           constraint (i/= (i/+ x (i/+ x 1) (i/+ x 2)) 12)]
       (is (= 3 (only-val (i/satisfy constraint)))))))
 
@@ -325,7 +325,7 @@
 (deftest boolean-circuit-test
   (testing "boolean satisfiability: (a OR b) AND (NOT a OR c) AND (NOT b OR NOT c)"
     (let [binary (range 2)
-          a (i/fresh-int binary) b (i/fresh-int binary) c (i/fresh-int binary)
+          a (i/domain binary) b (i/domain binary) c (i/domain binary)
           constraint (i/and
                       (i/or (i/= a 1) (i/= b 1))
                       (i/or (i/= a 0) (i/= c 1))
@@ -347,7 +347,7 @@
     ;; succ[i] = the next node after node i in the cycle.
     (let [n 5
           node-domain (range n)
-          succ (vec (repeatedly n #(i/fresh-int node-domain)))
+          succ (vec (repeatedly n #(i/domain node-domain)))
           ;; No self-loops: succ[i] != i
           no-self (->> (for [i (range n)]
                          (i/not= (nth succ i) i))
@@ -355,7 +355,7 @@
           ;; Follow the chain from node 0 and verify we visit all nodes
           ;; and return to 0 after exactly n steps.
           ;; pos[k] = the node at position k in the tour starting from 0.
-          pos (vec (repeatedly n #(i/fresh-int node-domain)))
+          pos (vec (repeatedly n #(i/domain node-domain)))
           chain (apply i/and
                        (i/= (nth pos 0) 0) ;; start at node 0
                        ;; pos[k+1] = succ[pos[k]]
@@ -404,24 +404,24 @@
           node-domain (range n)
           cost-domain (range 101)
           ;; succ[i] = next node after i
-          succ (vec (repeatedly n #(i/fresh-int node-domain)))
+          succ (vec (repeatedly n #(i/domain node-domain)))
           ;; no self-loops
           no-self (->> (for [i (range n)]
                          (i/not= (nth succ i) i))
                        (apply i/and))
           ;; edge-cost[i] = cost from i to succ[i]
           edge-costs (vec (for [i (range n)]
-                            (let [ec (i/fresh-int cost-domain)]
+                            (let [ec (i/domain cost-domain)]
                               ;; ec = costs[i][succ[i]]
                               ;; Use i/nth to index into the cost row for node i
                               (i/= ec (i/nth (vec (nth costs i)) (nth succ i))))))
-          ec-vars (vec (for [i (range n)] (i/fresh-int cost-domain)))
+          ec-vars (vec (for [i (range n)] (i/domain cost-domain)))
           edge-constraints (apply i/and
                                   (for [i (range n)]
                                     (i/= (nth ec-vars i) (i/nth (vec (nth costs i)) (nth succ i)))))
           total-cost (apply i/+ ec-vars)
           ;; Chain connectivity: pos[k] = node at position k
-          pos (vec (repeatedly n #(i/fresh-int node-domain)))
+          pos (vec (repeatedly n #(i/domain node-domain)))
           chain (apply i/and
                        (i/= (nth pos 0) 0)
                        (for [k (range (dec n))]
@@ -450,7 +450,7 @@
           handle (i/circuit g)
           cost-domain (range 101)
           succ (:succ handle)
-          ec-vars (vec (for [_ (range n)] (i/fresh-int cost-domain)))
+          ec-vars (vec (for [_ (range n)] (i/domain cost-domain)))
           edge-constraints (apply i/and
                                   (for [i (range n)]
                                     (i/= (nth ec-vars i) (i/nth (vec (nth costs i)) (nth succ i)))))
@@ -471,7 +471,7 @@
     (let [edges [[0 1] [0 2] [1 2] [1 3] [2 4] [3 4]]
           n 5
           color-domain (range 3) ;; 3 colors: 0,1,2
-          colors (vec (repeatedly n #(i/fresh-int color-domain)))
+          colors (vec (repeatedly n #(i/domain color-domain)))
           ;; adjacent nodes must have different colors
           edge-constraints (->> edges
                                 (map (fn [[u v]] (i/not= (nth colors u) (nth colors v))))
@@ -487,7 +487,7 @@
     (let [edges [[0 1] [0 2] [1 2] [1 3] [2 4] [3 4]]
           n 5
           color-domain #{:red :green :blue}
-          colors (vec (repeatedly n #(i/fresh-keyword color-domain)))
+          colors (vec (repeatedly n #(i/domain color-domain)))
           edge-constraints (->> edges
                                 (map (fn [[u v]] (i/not= (nth colors u) (nth colors v))))
                                 (apply i/and))
@@ -512,7 +512,7 @@
           deadlines  [4 2 7 5]
           pos-domain (range n)
           ;; pos[i] = position of job i in the schedule (0-indexed)
-          pos (vec (repeatedly n #(i/fresh-int pos-domain)))
+          pos (vec (repeatedly n #(i/domain pos-domain)))
           ;; completion time of job i = sum of processing times of all jobs
           ;; scheduled at positions <= pos[i].
           ;; We use: for each job i, the completion time is bounded by:
@@ -530,7 +530,7 @@
           ;;
           ;; Even simpler: which job is at each position?
           ;; job-at[k] = j means job j is at position k.
-          job-at (vec (repeatedly n #(i/fresh-int (range n))))
+          job-at (vec (repeatedly n #(i/domain (range n))))
           ;; job-at is inverse permutation of pos
           inverse-link (->> (for [i (range n) k (range n)]
                               ;; if pos[i] = k then job-at[k] = i
@@ -543,7 +543,7 @@
           ;; For each position k, the job there must finish by its deadline.
           ;; finish(k) = sum_{m=0}^{k} proc-time[job-at[m]]
           ;; We build incremental sums using auxiliary variables.
-          finish-vars (vec (repeatedly n #(i/fresh-int (range 100))))
+          finish-vars (vec (repeatedly n #(i/domain (range 100))))
           ;; finish[0] = proc-time[job-at[0]]
           finish-0 (i/= (nth finish-vars 0) (i/nth (vec proc-times) (nth job-at 0)))
           ;; finish[k] = finish[k-1] + proc-time[job-at[k]]
@@ -581,7 +581,7 @@
           costs [[9 2] [6 4] [5 8] [7 3]]
           worker-domain (range n-workers)
           ;; assignment[t] = which worker does task t
-          assignment (vec (repeatedly n-tasks #(i/fresh-int worker-domain)))
+          assignment (vec (repeatedly n-tasks #(i/domain worker-domain)))
           ;; each worker gets exactly 2 tasks
           balance (->> (for [w (range n-workers)]
                          (let [task-count (apply i/+
@@ -591,7 +591,7 @@
                        (apply i/and))
           ;; cost of each task
           task-costs (vec (for [t (range n-tasks)]
-                           (i/fresh-int (range 20))))
+                           (i/domain (range 20))))
           cost-links (apply i/and
                             (for [t (range n-tasks)]
                               (i/= (nth task-costs t)
@@ -618,7 +618,7 @@
           val-domain (range 1 (inc n))
           ;; cells[row][col]
           cells (vec (for [_ (range n)]
-                       (vec (repeatedly n #(i/fresh-int val-domain)))))
+                       (vec (repeatedly n #(i/domain val-domain)))))
           ;; row constraints: all different in each row
           row-diff (apply i/and (for [r (range n)]
                                   (apply i/all-different (nth cells r))))
@@ -639,7 +639,7 @@
     ;; Uses i/nth to express p[p[i]].
     (let [n 5
           perm-domain (range n)
-          p (vec (repeatedly n #(i/fresh-int perm-domain)))
+          p (vec (repeatedly n #(i/domain perm-domain)))
           ;; involution: p[p[i]] = i for all i
           involution (->> (for [i (range n)]
                             (i/= (i/nth p (nth p i)) i))
@@ -673,7 +673,7 @@
           n-bins 3 ;; we know optimal is 3
           bin-domain (range n-bins)
           ;; bin[item] = which bin this item goes in
-          bins (vec (repeatedly n-items #(i/fresh-int bin-domain)))
+          bins (vec (repeatedly n-items #(i/domain bin-domain)))
           ;; for each bin, sum of item sizes assigned to it <= capacity
           capacity-constraints
           (->> (for [b (range n-bins)]
@@ -712,7 +712,7 @@
           ;; State at each time step: [farmer wolf goat cabbage]
           ;; state[t][entity] where entity: 0=farmer, 1=wolf, 2=goat, 3=cabbage
           state (vec (for [_ (range (inc max-steps))]
-                       (vec (repeatedly 4 #(i/fresh-int binary)))))
+                       (vec (repeatedly 4 #(i/domain binary)))))
           ;; Initial state: all on left bank (0)
           init (apply i/and
                       (for [e (range 4)]
@@ -803,8 +803,8 @@
     ;; Try a=4, b=5: material=13, labor=14>12. Invalid.
     ;; Try a=2, b=5: profit=31. Valid.
     ;; So a=4, b=4 -> 32 is optimal.
-    (let [a (i/fresh-int (range 20))
-          b (i/fresh-int (range 20))
+    (let [a (i/domain (range 20))
+          b (i/domain (range 20))
           profit (i/+ (i/* 3 a) (i/* 5 b))
           constraint (i/and
                       (i/<= (i/+ (i/* 2 a) b) 14)         ;; material
@@ -838,9 +838,9 @@
           inanimate #{:stone :river :fire}
           nouns (into animate inanimate)
           verbs #{:hunts :guards :fears :watches}
-          subject (i/fresh-keyword nouns)
-          verb (i/fresh-keyword verbs)
-          object (i/fresh-keyword nouns)
+          subject (i/domain nouns)
+          verb (i/domain verbs)
+          object (i/domain nouns)
           grammar (i/and
                    ;; Rule 1: subject must be animate
                    (i/contains? animate subject)
@@ -868,9 +868,9 @@
           inanimate #{:stone :river :fire}
           nouns (into animate inanimate)
           verbs #{:hunts :guards :fears :watches}
-          subject (i/fresh-keyword nouns)
-          verb (i/fresh-keyword verbs)
-          object (i/fresh-keyword nouns)
+          subject (i/domain nouns)
+          verb (i/domain verbs)
+          object (i/domain nouns)
           grammar (i/and
                    (i/contains? animate subject)
                    (i/not= subject object)
@@ -908,14 +908,14 @@
           back-vowels #{:a :o :u}
           vowels (into front-vowels back-vowels)
           ;; 3-syllable word: c1 v1 c2 v2 c3 v3
-          c1 (i/fresh-keyword consonants)
-          v1 (i/fresh-keyword vowels)
-          c2 (i/fresh-keyword consonants)
-          v2 (i/fresh-keyword vowels)
-          c3 (i/fresh-keyword consonants)
-          v3 (i/fresh-keyword vowels)
+          c1 (i/domain consonants)
+          v1 (i/domain vowels)
+          c2 (i/domain consonants)
+          v2 (i/domain vowels)
+          c3 (i/domain consonants)
+          v3 (i/domain vowels)
           ;; Harmony class selector
-          harmony (i/fresh-keyword #{:front :back})
+          harmony (i/domain #{:front :back})
           phonotactics
           (i/and
            ;; Vowel harmony: all vowels from same class

@@ -306,19 +306,72 @@
   []
   (->Decision (str (gensym))))
 
-(defn fresh-bool []
+(defn- infer-element-type
+  "Infer element type (:int or :keyword) from coll, with optional :type
+   in opts acting as both a rescue (for empty/computed colls) and an
+   assertion against the coll's actual contents. Throws ex-info with one
+   of the three documented messages on failure."
+  [coll opts]
+  (let [declared (:type opts)
+        empty?   (empty? coll)
+        all-int? (and (not empty?) (every? number? coll))
+        all-kw?  (and (not empty?) (every? keyword? coll))]
+    (cond
+      (and empty? (nil? declared))
+      (throw (ex-info "Cannot infer element type from empty domain; pass {:type :int} or {:type :keyword}"
+                      {:domain coll}))
+
+      (and (not empty?) (not all-int?) (not all-kw?))
+      (throw (ex-info "Heterogeneous domains are not supported; all elements must share a type"
+                      {:domain coll}))
+
+      (and (some? declared)
+           (not (#{:int :keyword} declared)))
+      (throw (ex-info "Domain values are inconsistent with declared :type"
+                      {:domain coll :type declared}))
+
+      (and (some? declared) (not empty?)
+           (or (and (= declared :int) (not all-int?))
+               (and (= declared :keyword) (not all-kw?))))
+      (throw (ex-info "Domain values are inconsistent with declared :type"
+                      {:domain coll :type declared}))
+
+      (some? declared) declared
+      all-int?         :int
+      all-kw?          :keyword)))
+
+(defn domain
+  "Mint a scalar decision variable ranging over coll.
+
+   The element type (:int or :keyword) is inferred from coll's contents.
+   Pass {:type :int} or {:type :keyword} as a second argument to (a) seed
+   an empty or runtime-computed collection, or (b) assert the expected
+   element type against a non-empty coll.
+
+   Throws when coll is empty without a :type, when coll mixes element
+   types, or when a declared :type contradicts coll."
+  ([coll] (domain coll nil))
+  ([coll opts]
+   (let [t (infer-element-type coll opts)]
+     (force-type (bind coll (fresh))
+                 (case t :int types/Numeric :keyword types/Keyword)))))
+
+(defn universe
+  "Mint a set decision variable ranging over the powerset of coll
+   (i.e. coll is the universe of possible members).
+
+   The element type of the universe (:int or :keyword) is inferred from
+   coll's contents. Pass {:type :int} or {:type :keyword} to seed an
+   empty or runtime-computed universe, or to assert the expected element
+   type.
+
+   Throws under the same conditions as `domain`."
+  ([coll] (universe coll nil))
+  ([coll opts]
+   (infer-element-type coll opts)
+   (force-type (bind coll (fresh)) types/Set)))
+
+(defn bool
+  "Mint a boolean decision variable."
+  []
   (force-type (fresh) types/Bool))
-
-(defn fresh-int
-  [domain]
-  (force-type (bind domain (fresh)) types/Numeric))
-
-(defn fresh-set [super]
-  (when (and (seq super) (not (or (every? number? super) (every? keyword? super))))
-    (throw (ex-info "set domain must be homogeneous — all integers or all keywords" {:domain super})))
-  (force-type (bind super (fresh)) types/Set))
-
-(defn fresh-keyword [domain]
-  (when-not (every? keyword? domain)
-    (throw (ex-info "keyword domain must contain only keywords" {:domain domain})))
-  (force-type (bind domain (fresh)) types/Keyword))

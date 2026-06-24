@@ -6,7 +6,7 @@
   (testing "map a constraint-producing function over indices"
     (let [exceeds-index (fn [vars k] (i/> (nth vars k) k))
           n    5
-          vars (vec (repeatedly n #(i/fresh-int (range 20))))
+          vars (vec (repeatedly n #(i/domain (range 20))))
           vals (i/solve (apply i/and (map #(exceeds-index vars %) (range n)))
                               vars)]
       (doseq [k (range n)]
@@ -18,7 +18,7 @@
     (let [pairwise (fn [f vars]
                      (apply i/and (map (fn [[a b]] (f a b))
                                        (partition 2 1 vars))))
-          vars (vec (repeatedly 5 #(i/fresh-int (range 20))))
+          vars (vec (repeatedly 5 #(i/domain (range 20))))
           vals (i/solve (i/and (pairwise i/< vars)
                                      (pairwise (fn [a b] (i/<= (i/- b a) 3)) vars))
                               vars)]
@@ -37,7 +37,7 @@
                               (apply i/and (for [col cols]
                                              (apply i/all-different col)))))
           grid (vec (for [_ (range 4)]
-                      (vec (repeatedly 4 #(i/fresh-int (range 1 5))))))
+                      (vec (repeatedly 4 #(i/domain (range 1 5))))))
           result (i/solve (i/and (row-constraints grid)
                                        (col-constraints grid))
                                 grid)]

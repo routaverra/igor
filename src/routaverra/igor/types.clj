@@ -19,5 +19,5 @@
       (throw (ex-info
               (str "Ambiguous type: decision is used in both "
                    (clojure.string/join " and " (sort types))
-                   " contexts. Use fresh-int or fresh-set to disambiguate.")
+                   " contexts. Use domain or universe to disambiguate.")
               {:types (set types)})))))

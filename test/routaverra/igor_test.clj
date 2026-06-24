@@ -10,8 +10,8 @@
                 int-domain (range -100 101)]
             (->> (for [x (range n)
                        y (range n)
-                       :let [a (i/fresh-int int-domain)
-                             b (i/fresh-int int-domain)]]
+                       :let [a (i/domain int-domain)
+                             b (i/domain int-domain)]]
                    (i/and
                     (i/= a x)
                     (i/= b y)
@@ -34,14 +34,14 @@
 
 (deftest minimize-basic-test
   (testing "minimize finds the minimum value"
-    (let [x (i/fresh-int (range 1 11))
+    (let [x (i/domain (range 1 11))
           solution (i/minimize x (i/>= x 0))]
       (is (= 1 (get solution x))))))
 
 (deftest minimize-equivalence-test
   (testing "minimize gives same result as maximize-negated"
-    (let [x (i/fresh-int (range 1 11))
-          y (i/fresh-int (range 1 11))
+    (let [x (i/domain (range 1 11))
+          y (i/domain (range 1 11))
           constraint (i/<= (i/+ x y) 15)
           sol-min (i/minimize (i/+ x y) constraint)
           sol-neg (i/maximize (i/- 0 (i/+ x y)) constraint)]
@@ -50,13 +50,13 @@
 
 (deftest maximize-unchanged-test
   (testing "maximize still works correctly"
-    (let [x (i/fresh-int (range 1 11))
+    (let [x (i/domain (range 1 11))
           solution (i/maximize x (i/>= x 0))]
       (is (= 10 (get solution x))))))
 
 (deftest solve-test
-  (let [x (i/fresh-int (range 10))
-        y (i/fresh-int (range 10))
+  (let [x (i/domain (range 10))
+        y (i/domain (range 10))
         constraint (i/and (i/= x 3) (i/= y 7))]
     (testing "flat vector"
       (is (= [3 7] (i/solve constraint [x y]))))
@@ -65,13 +65,13 @@
              (i/solve constraint {:vals [x y] :label "test"}))))))
 
 (deftest solve-unsatisfiable-test
-  (let [x (i/fresh-int #{1 2 3})]
+  (let [x (i/domain #{1 2 3})]
     (is (nil? (i/solve (i/and (i/> x 5) (i/< x 0)) [x])))))
 
 (deftest solve-passthrough-test
   (testing "unconstrained decisions pass through"
-    (let [x (i/fresh-int (range 10))
-          orphan (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
+          orphan (i/domain (range 10))
           result (i/solve (i/= x 5) [x orphan])]
       (is (= 5 (first result)))
       (is (i/unresolved? (second result))))))

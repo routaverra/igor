@@ -56,7 +56,7 @@
                (i/some (i/fresh) (fn [a] (i/= a 1))))))))
 
     (testing "some constrains: at least one element satisfies"
-      (let [x (i/fresh-set (range 10))
+      (let [x (i/universe (range 10))
             res (i/satisfy
                  (i/and
                   (i/some x (fn [a] (i/> a 7)))
@@ -64,26 +64,26 @@
         (is (clojure.core/some #(> % 7) (get res x)))))
 
     (testing "some evaluates against solution"
-      (let [x (i/fresh-set (range 10))
+      (let [x (i/universe (range 10))
             term (i/some x (fn [a] (i/> a 5)))]
         (is (true? (protocols/evaluate term {x #{1 2 8}})))
         (is (false? (protocols/evaluate term {x #{1 2 3}})))))
 
     (testing "some returns false for empty set"
-      (let [x (i/fresh-set (range 5))
+      (let [x (i/universe (range 5))
             term (i/some x (fn [a] (i/> a 0)))]
         (is (false? (protocols/evaluate term {x #{}})))))))
 
 (deftest implication-operators-test
   (testing "?> (implication)"
     (testing "binary: same as old implies"
-      (let [a (i/fresh-int (range 1 10))]
+      (let [a (i/domain (range 1 10))]
         (is (= 3 (get (i/satisfy (i/?> true (i/= a 3))) a)))
         (is (clojure.core/not= 3 (get (i/satisfy (i/?> false (i/= a 3))) a)))))
     (testing "n-ary pairwise chain"
-      (let [a (i/fresh-bool)
-            b (i/fresh-bool)
-            c (i/fresh-bool)
+      (let [a (i/bool)
+            b (i/bool)
+            c (i/bool)
             ;; a -> b -> c: (a->b) /\ (b->c)
             ;; with a=true, c=false: b must make both hold
             ;; true->b /\ b->false: b->false requires b=false, true->false is false => unsat
@@ -93,17 +93,17 @@
 
   (testing "<? (reverse implication)"
     (testing "binary"
-      (let [a (i/fresh-int (range 1 10))
-            b (i/fresh-int (range 1 10))]
+      (let [a (i/domain (range 1 10))
+            b (i/domain (range 1 10))]
         ;; a <- (= b 3): if b=3 then a is unconstrained... no: a <- (= b 3) means (= b 3) -> a
         ;; Actually: a <- b means "a or (not b)" i.e. b implies a
         ;; So (<? (= a 5) (= b 3)): (= b 3) implies (= a 5): if b=3 then a=5
         ;; Force b=3 and check a=5
         (is (= 5 (get (i/satisfy (i/and (i/= b 3) (i/<? (i/= a 5) (i/= b 3)))) a)))))
     (testing "n-ary pairwise chain"
-      (let [a (i/fresh-bool)
-            b (i/fresh-bool)
-            c (i/fresh-bool)
+      (let [a (i/bool)
+            b (i/bool)
+            c (i/bool)
             ;; (<? a b c) = (a <- b) /\ (b <- c) = (b->a) /\ (c->b)
             ;; with c=true, a=false: c->b requires b=true, b->a requires a=true => conflict with a=false
             ;; so this should be unsat... let's test a compatible case:
@@ -114,15 +114,15 @@
 
   (testing "<?> (coimplication)"
     (testing "binary"
-      (let [a (i/fresh-bool)
-            b (i/fresh-bool)
+      (let [a (i/bool)
+            b (i/bool)
             ;; a <-> b with a=true means b must be true
             res (i/satisfy (i/and (i/= a true) (i/<?> a b)))]
         (is (true? (get res b)))))
     (testing "n-ary pairwise chain"
-      (let [a (i/fresh-bool)
-            b (i/fresh-bool)
-            c (i/fresh-bool)
+      (let [a (i/bool)
+            b (i/bool)
+            c (i/bool)
             ;; (<?> a b c) = (a<->b) /\ (b<->c): all must be equal
             ;; with a=true, all must be true
             res (i/satisfy (i/and (i/= a true) (i/<?> a b c)))]

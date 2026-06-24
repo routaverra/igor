@@ -30,7 +30,7 @@
   [& constraints]
   (let [constraints (vec constraints)
         n           (count constraints)
-        choice-var  (api/fresh-int (set (range n)))
+        choice-var  (api/domain (set (range n)))
         constraint  (apply terms/and*
                       (map-indexed
                         (fn [k c]

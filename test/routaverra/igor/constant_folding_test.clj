@@ -16,8 +16,8 @@
   "Given a term-fn that takes igor expressions and returns a numeric expression,
    and concrete values to constrain the decisions to, returns the solver's answer."
   [term-fn values]
-  (let [decisions (mapv (fn [_] (i/fresh-int int-domain)) values)
-        result (i/fresh-int int-domain)
+  (let [decisions (mapv (fn [_] (i/domain int-domain)) values)
+        result (i/domain int-domain)
         constraints (apply i/and
                            (i/= result (apply term-fn decisions))
                            (map (fn [d v] (i/= d v)) decisions values))]
@@ -26,7 +26,7 @@
 (defn- solve-bool
   "Like solve-numeric but for boolean-returning terms."
   [term-fn values]
-  (let [decisions (mapv (fn [_] (i/fresh-int int-domain)) values)
+  (let [decisions (mapv (fn [_] (i/domain int-domain)) values)
         result (i/fresh)
         constraints (apply i/and
                            (i/= result (apply term-fn decisions))
@@ -318,9 +318,9 @@
           b #{4 5 6 7 8 9}]
       (is (= #{4 5 6} (i/intersection a b)))
       ;; solver parity
-      (let [da (i/fresh-set (range 12))
-            db (i/fresh-set (range 12))
-            dr (i/fresh-set (range 12))
+      (let [da (i/universe (range 12))
+            db (i/universe (range 12))
+            dr (i/universe (range 12))
             solution (i/satisfy (i/and (i/= da a) (i/= db b) (i/= dr (i/intersection da db))))]
         (is (= (i/intersection a b) (get solution dr)))))))
 
@@ -329,9 +329,9 @@
     (let [a #{1 2 3 4 5 6}
           b #{4 5 6 7 8 9}]
       (is (= #{1 2 3} (i/difference a b)))
-      (let [da (i/fresh-set (range 12))
-            db (i/fresh-set (range 12))
-            dr (i/fresh-set (range 12))
+      (let [da (i/universe (range 12))
+            db (i/universe (range 12))
+            dr (i/universe (range 12))
             solution (i/satisfy (i/and (i/= da a) (i/= db b) (i/= dr (i/difference da db))))]
         (is (= (i/difference a b) (get solution dr)))))))
 
@@ -340,9 +340,9 @@
     (let [a #{1 2 3 4 5 6}
           b #{4 5 6 7 8 9}]
       (is (= #{1 2 3 7 8 9} (i/sym-diff a b)))
-      (let [da (i/fresh-set (range 12))
-            db (i/fresh-set (range 12))
-            dr (i/fresh-set (range 12))
+      (let [da (i/universe (range 12))
+            db (i/universe (range 12))
+            dr (i/universe (range 12))
             solution (i/satisfy (i/and (i/= da a) (i/= db b) (i/= dr (i/sym-diff da db))))]
         (is (= (i/sym-diff a b) (get solution dr)))))))
 
@@ -351,9 +351,9 @@
     (let [a #{1 2 3 4 5 6}
           b #{4 5 6 7 8 9}]
       (is (= #{1 2 3 4 5 6 7 8 9} (i/union a b)))
-      (let [da (i/fresh-set (range 12))
-            db (i/fresh-set (range 12))
-            dr (i/fresh-set (range 12))
+      (let [da (i/universe (range 12))
+            db (i/universe (range 12))
+            dr (i/universe (range 12))
             solution (i/satisfy (i/and (i/= da a) (i/= db b) (i/= dr (i/union da db))))]
         (is (= (i/union a b) (get solution dr)))))))
 

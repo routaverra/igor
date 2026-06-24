@@ -27,7 +27,7 @@
   "Collect all keyword values from decision bindings and constraint argv vectors.
    Only collects keywords that participate as domain values, not structural record keys."
   [constraint decisions bindings]
-  (let [;; Keywords from decision binding ranges (e.g. fresh-keyword, fresh-set with keywords)
+  (let [;; Keywords from decision binding ranges (e.g. domain/universe over keywords)
         from-bindings (->> decisions
                            keys
                            (keep #(api/binding-set (get bindings %)))
@@ -85,7 +85,7 @@
                       (>>* "var int: {{decision}};")
                       (throw (ex-info
                               (str "unbound numeric decision: " (protocols/write decision)
-                                   ". Use (i/bind domain decision) or (i/fresh-int domain) to specify bounds.")
+                                   ". Use (i/bind coll decision) or (i/domain coll) to specify bounds.")
                               {}))))
 
                   (= type types/Bool)

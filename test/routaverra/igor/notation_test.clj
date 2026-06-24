@@ -11,8 +11,8 @@
 
 (deftest as-transparency-test
   (testing "as wrapper does not affect solve results"
-    (let [x (i/fresh-int (range 10))
-          y (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
+          y (i/domain (range 10))
           constraint (i/and (i/= x 3) (i/= y 7))
           wrapped (i/and (i/as :c1 (i/= x 3)) (i/as :c2 (i/= y 7)))
           sol1 (i/satisfy constraint)
@@ -238,34 +238,34 @@
 
 (deftest domain-declaration-int-test
   (testing "integer variables get domain declarations"
-    (let [x (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
           result (notation/render-notation x :format :latex)]
       (is (str/includes? result "\\in \\{0, \\ldots, 9\\}")))))
 
 (deftest domain-declaration-grouped-test
   (testing "variables with same domain are grouped on one line"
-    (let [x (i/fresh-int (range 10))
-          y (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
+          y (i/domain (range 10))
           result (notation/render-notation (i/+ x y) :format :latex)]
       ;; Both vars on same declaration line
       (is (str/includes? result "x_{1}, x_{2} \\in \\{0, \\ldots, 9\\}")))))
 
 (deftest domain-declaration-set-test
   (testing "set variables use subset notation"
-    (let [s (api/fresh-set (range 6))
+    (let [s (api/universe (range 6))
           result (notation/render-notation s :format :latex)]
       (is (str/includes? result "\\subseteq")))))
 
 (deftest domain-declaration-unicode-test
   (testing "unicode domain declarations"
-    (let [x (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
           result (notation/render-notation x :format :unicode)]
       (is (str/includes? result "∈"))
       (is (str/includes? result "…")))))
 
 (deftest domain-declaration-alias-test
   (testing "aliased variables use their alias names in declarations"
-    (let [tempo (i/as :tempo (i/fresh-int (range 60 200)))
+    (let [tempo (i/as :tempo (i/domain (range 60 200)))
           result (notation/render-problem (i/>= tempo 120) :format :latex)]
       (is (str/includes? result "tempo \\in \\{60, \\ldots, 199\\}")))))
 
@@ -289,7 +289,7 @@
 
 (deftest as-alias-no-definition-line-test
   (testing "as wrapping a bare Decision uses the name directly, no definition line"
-    (let [x (i/as :tempo (i/fresh-int (range 100)))
+    (let [x (i/as :tempo (i/domain (range 100)))
           result (notation/render-notation x :format :latex)]
       ;; Should have domain declaration and name, but no ":=" definition
       (is (str/includes? result "tempo"))
@@ -299,8 +299,8 @@
 
 (deftest as-alias-in-expression-test
   (testing "as-aliased decision renders with its name in expressions"
-    (let [x (i/as :x (i/fresh-int (range 100)))
-          y (i/as :y (i/fresh-int (range 100)))
+    (let [x (i/as :x (i/domain (range 100)))
+          y (i/as :y (i/domain (range 100)))
           result (notation/render-notation (i/+ x y) :format :latex)]
       ;; Last line is the expression using alias names
       (is (= "x + y" (last (str/split-lines result))))
@@ -309,8 +309,8 @@
 
 (deftest as-alias-mixed-with-real-definition-test
   (testing "alias + real definition: alias uses name directly, real def gets := line"
-    (let [x (i/as :x (i/fresh-int (range 100)))
-          y (i/as :y (i/fresh-int (range 100)))
+    (let [x (i/as :x (i/domain (range 100)))
+          y (i/as :y (i/domain (range 100)))
           sum (i/as :S (i/+ x y))
           result (notation/render-notation (i/= sum 42) :format :latex)]
       (is (str/includes? result "S := x + y"))
@@ -320,7 +320,7 @@
 
 (deftest as-alias-in-problem-test
   (testing "as-aliased decisions work in render-problem"
-    (let [tempo (i/as :tempo (i/fresh-int (range 60 200)))
+    (let [tempo (i/as :tempo (i/domain (range 60 200)))
           result (notation/render-problem
                   (i/and (i/>= tempo 120) (i/<= tempo 140))
                   :format :latex)]

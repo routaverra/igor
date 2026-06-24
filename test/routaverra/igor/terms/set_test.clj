@@ -6,9 +6,9 @@
 (deftest intersection-test
   (testing "intersection"
     (is (= #{4 5 6}
-           (let [res (i/fresh-set (range 12))
-                 a (i/fresh-set (range 12))
-                 b (i/fresh-set (range 12))]
+           (let [res (i/universe (range 12))
+                 a (i/universe (range 12))
+                 b (i/universe (range 12))]
              (get
               (i/satisfy
                (i/and (i/= a #{1 2 3 4 5 6})
@@ -19,9 +19,9 @@
 (deftest difference-test
   (testing "difference"
     (is (= #{1 2 3}
-           (let [res (i/fresh-set (range 12))
-                 a (i/fresh-set (range 12))
-                 b (i/fresh-set (range 12))]
+           (let [res (i/universe (range 12))
+                 a (i/universe (range 12))
+                 b (i/universe (range 12))]
              (get
               (i/satisfy
                (i/and (i/= a #{1 2 3 4 5 6})
@@ -32,9 +32,9 @@
 (deftest symdiff-test
   (testing "symdiff"
     (is (= #{1 2 3 7 8 9}
-           (let [res (i/fresh-set (range 12))
-                 a (i/fresh-set (range 12))
-                 b (i/fresh-set (range 12))]
+           (let [res (i/universe (range 12))
+                 a (i/universe (range 12))
+                 b (i/universe (range 12))]
              (get
               (i/satisfy
                (i/and (i/= a #{1 2 3 4 5 6})
@@ -45,9 +45,9 @@
 (deftest union-test
   (testing "union"
     (is (= #{1 2 3 4 5 6 7 8 9}
-           (let [res (i/fresh-set (range 12))
-                 a (i/fresh-set (range 12))
-                 b (i/fresh-set (range 12))]
+           (let [res (i/universe (range 12))
+                 a (i/universe (range 12))
+                 b (i/universe (range 12))]
              (get
               (i/satisfy
                (i/and (i/= a #{1 2 3 4 5 6})
@@ -59,8 +59,8 @@
   (testing "subset?"
     (is (= false
            (let [res (i/fresh)
-                 a (i/fresh-set (range 12))
-                 b (i/fresh-set (range 12))]
+                 a (i/universe (range 12))
+                 b (i/universe (range 12))]
              (get
               (i/satisfy
                (i/and (i/= a #{1 2 3 4 5 6})
@@ -70,8 +70,8 @@
 
     (is (= true
            (let [res (i/fresh)
-                 a (i/fresh-set (range 12))
-                 b (i/fresh-set (range 12))]
+                 a (i/universe (range 12))
+                 b (i/universe (range 12))]
              (get
               (i/satisfy
                (i/and (i/= a #{1 2 3})
@@ -83,8 +83,8 @@
   (testing "superset?"
     (is (= false
            (let [res (i/fresh)
-                 a (i/fresh-set (range 12))
-                 b (i/fresh-set (range 12))]
+                 a (i/universe (range 12))
+                 b (i/universe (range 12))]
              (get
               (i/satisfy
                (i/and (i/= a #{1 2 3 4 5 6})
@@ -94,8 +94,8 @@
 
     (is (= true
            (let [res (i/fresh)
-                 a (i/fresh-set (range 12))
-                 b (i/fresh-set (range 12))]
+                 a (i/universe (range 12))
+                 b (i/universe (range 12))]
              (get
               (i/satisfy
                (i/and (i/= a #{1 2 3 4 5 6 7 8 9})

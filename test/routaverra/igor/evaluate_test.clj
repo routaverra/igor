@@ -14,8 +14,8 @@
 
 (deftest arithmetic-evaluate-test
   (testing "basic arithmetic terms"
-    (let [x (api/fresh-int (range 10))
-          y (api/fresh-int (range 10))
+    (let [x (api/domain (range 10))
+          y (api/domain (range 10))
           sol {x 3 y 5}]
       (is (= 8 (protocols/evaluate (i/+ x y) sol)))
       (is (= 15 (protocols/evaluate (i/* x y) sol)))
@@ -31,8 +31,8 @@
 
 (deftest comparison-evaluate-test
   (testing "comparison terms"
-    (let [x (api/fresh-int (range 10))
-          y (api/fresh-int (range 10))
+    (let [x (api/domain (range 10))
+          y (api/domain (range 10))
           sol {x 3 y 5}]
       (is (true? (protocols/evaluate (i/= x x) sol)))
       (is (false? (protocols/evaluate (i/= x y) sol)))
@@ -44,8 +44,8 @@
 
 (deftest logic-evaluate-test
   (testing "logic terms"
-    (let [a (api/fresh-bool)
-          b (api/fresh-bool)
+    (let [a (api/bool)
+          b (api/bool)
           sol {a true b false}]
       (is (false? (protocols/evaluate (i/and a b) sol)))
       (is (true? (protocols/evaluate (i/and a a) sol)))
@@ -72,7 +72,7 @@
 
 (deftest predicate-evaluate-test
   (testing "predicate terms"
-    (let [x (api/fresh-int (range -5 6))
+    (let [x (api/domain (range -5 6))
           sol-pos {x 3}
           sol-neg {x -2}
           sol-zero {x 0}
@@ -87,8 +87,8 @@
 
 (deftest conditional-evaluate-test
   (testing "if/cond terms"
-    (let [x (api/fresh-int (range 10))
-          b (api/fresh-bool)
+    (let [x (api/domain (range 10))
+          b (api/bool)
           sol-t {x 3 b true}
           sol-f {x 3 b false}]
       (is (= 3 (protocols/evaluate (i/if b x 99) sol-t)))
@@ -104,10 +104,10 @@
 
 (deftest collection-evaluate-test
   (testing "nth, contains?, all-different, count"
-    (let [x (api/fresh-int (range 5))
-          y (api/fresh-int (range 5))
-          z (api/fresh-int (range 5))
-          s (api/fresh-set (range 10))
+    (let [x (api/domain (range 5))
+          y (api/domain (range 5))
+          z (api/domain (range 5))
+          s (api/universe (range 10))
           sol {x 1 y 2 z 3 s #{2 5 8}}]
       (is (= 20 (protocols/evaluate (i/nth [10 20 30] x) sol)))
       (is (true? (protocols/evaluate (i/contains? s x) {x 2 s #{2 5 8}})))
@@ -118,8 +118,8 @@
 
 (deftest set-ops-evaluate-test
   (testing "set operations"
-    (let [a (api/fresh-set (range 10))
-          b (api/fresh-set (range 10))
+    (let [a (api/universe (range 10))
+          b (api/universe (range 10))
           sol {a #{1 2 3} b #{2 3 4}}]
       (is (= #{2 3} (protocols/evaluate (i/intersection a b) sol)))
       (is (= #{1} (protocols/evaluate (i/difference a b) sol)))
@@ -130,8 +130,8 @@
 
 (deftest table-evaluate-test
   (testing "table constraint"
-    (let [x (api/fresh-int (range 5))
-          y (api/fresh-int (range 5))
+    (let [x (api/domain (range 5))
+          y (api/domain (range 5))
           tuples [[1 2] [3 4] [0 0]]
           term (extensional/table [x y] tuples)]
       (is (true? (protocols/evaluate term {x 1 y 2})))
@@ -148,9 +148,9 @@
                              {1 1 2 2}]  ;; state 2: seen 2
                :start 0
                :accept #{2}}
-          x (api/fresh-int #{1 2})
-          y (api/fresh-int #{1 2})
-          z (api/fresh-int #{1 2})
+          x (api/domain #{1 2})
+          y (api/domain #{1 2})
+          z (api/domain #{1 2})
           term (extensional/regular [x y z] dfa)]
       (is (true? (protocols/evaluate term {x 1 y 1 z 2})))
       (is (true? (protocols/evaluate term {x 2 y 1 z 2})))
@@ -158,36 +158,36 @@
 
 (deftest every?-evaluate-test
   (testing "every? quantifier"
-    (let [x (api/fresh-int (range 10))
+    (let [x (api/domain (range 10))
           ;; every? i in {0..4}: x > i means x > 4, i.e., x >= 5
           term (i/every? (sorted-set 0 1 2 3 4)
                          (fn [i] (i/> x i)))]
       (is (true? (protocols/evaluate term {x 5})))
       (is (false? (protocols/evaluate term {x 3})))))
   (testing "every? on empty set returns true (matches clojure.core/every?)"
-    (let [x (api/fresh-set (range 10))
+    (let [x (api/universe (range 10))
           term (i/every? x (fn [i] (i/> i 100)))]
       (is (true? (protocols/evaluate term {x #{}}))))))
 
 (deftest some-evaluate-test
   (testing "some quantifier"
-    (let [x (api/fresh-int (range 10))
+    (let [x (api/domain (range 10))
           term (i/some (sorted-set 0 1 2 3 4)
                        (fn [i] (i/> x i)))]
       (is (true? (protocols/evaluate term {x 3})))
       (is (false? (protocols/evaluate term {x 0})))))
   (testing "some on empty set returns false (matches boolean of clojure.core/some)"
-    (let [x (api/fresh-set (range 10))
+    (let [x (api/universe (range 10))
           term (i/some x (fn [i] (i/> i 0)))]
       (is (false? (protocols/evaluate term {x #{}})))))
   (testing "some with all-false predicates returns false"
-    (let [x (api/fresh-set (range 10))
+    (let [x (api/universe (range 10))
           term (i/some x (fn [i] (i/> i 100)))]
       (is (false? (protocols/evaluate term {x #{1 2 3}}))))))
 
 (deftest image-evaluate-test
   (testing "image generator"
-    (let [x (api/fresh-int (range 10))
+    (let [x (api/domain (range 10))
           ;; {i + x | i in {0,1,2}} with x=10 => {10, 11, 12}
           term (i/image (sorted-set 0 1 2)
                         (fn [i] (i/+ i x)))]
@@ -195,7 +195,7 @@
 
 (deftest as-evaluate-test
   (testing "TermAs delegates to inner"
-    (let [x (api/fresh-int (range 10))
+    (let [x (api/domain (range 10))
           term (i/as :my-name (i/+ x 1))]
       (is (= 6 (protocols/evaluate term {x 5}))))))
 
@@ -206,10 +206,10 @@
 (deftest send-more-money-validation-test
   (testing "SEND+MORE=MONEY: solver solution validates"
     (let [digits-domain (range 10)
-          s (i/fresh-int digits-domain) e (i/fresh-int digits-domain)
-          n (i/fresh-int digits-domain) d (i/fresh-int digits-domain)
-          m (i/fresh-int digits-domain) o (i/fresh-int digits-domain)
-          r (i/fresh-int digits-domain) y (i/fresh-int digits-domain)
+          s (i/domain digits-domain) e (i/domain digits-domain)
+          n (i/domain digits-domain) d (i/domain digits-domain)
+          m (i/domain digits-domain) o (i/domain digits-domain)
+          r (i/domain digits-domain) y (i/domain digits-domain)
           digits [s e n d m o r y]
           send  (i/+ (i/* s 1000) (i/* e 100) (i/* n 10) d)
           more  (i/+ (i/* m 1000) (i/* o 100) (i/* r 10) e)
@@ -225,7 +225,7 @@
 (deftest n-queens-validation-test
   (testing "N-Queens: solver solution validates"
     (let [n 5
-          queens (vec (for [_ (range n)] (i/fresh-int (range n))))
+          queens (vec (for [_ (range n)] (i/domain (range n))))
           constraint (apply i/and
                             (for [i (range n)
                                   j (range (inc i) n)]
@@ -238,8 +238,8 @@
 
 (deftest table-constraint-validation-test
   (testing "table constraint: solver solution validates"
-    (let [x (i/fresh-int (range 5))
-          y (i/fresh-int (range 5))
+    (let [x (i/domain (range 5))
+          y (i/domain (range 5))
           tuples [[0 1] [1 2] [2 3] [3 4]]
           constraint (i/and (extensional/table [x y] tuples)
                             (i/> x 1))
@@ -254,7 +254,7 @@
                              {0 0 1 1}]   ;; state 1
                :start 0
                :accept #{1}}
-          vars (vec (for [_ (range 4)] (i/fresh-int #{0 1})))
+          vars (vec (for [_ (range 4)] (i/domain #{0 1})))
           constraint (extensional/regular vars dfa)
           solution (i/satisfy constraint)]
       (is (true? (i/validate-solution constraint solution))))))
@@ -265,8 +265,8 @@
 
 (deftest negative-validation-test
   (testing "wrong solutions return false"
-    (let [x (i/fresh-int (range 10))
-          y (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
+          y (i/domain (range 10))
           constraint (i/and (i/= (i/+ x y) 10)
                             (i/> x 3))]
       ;; x=2, y=8: sum is 10 but x not > 3
@@ -282,8 +282,8 @@
 
 (deftest validate-binding-test
   (testing "binding *validate?* true doesn't throw for valid problems"
-    (let [x (i/fresh-int (range 10))
-          y (i/fresh-int (range 10))
+    (let [x (i/domain (range 10))
+          y (i/domain (range 10))
           constraint (i/and (i/= (i/+ x y) 10)
                             (i/> x 0)
                             (i/> y 0))

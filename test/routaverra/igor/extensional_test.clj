@@ -8,9 +8,9 @@
 
 (deftest table-basic-test
   (testing "table constrains vars to one of the allowed tuples"
-    (let [x1 (i/fresh-int (range 10))
-          x2 (i/fresh-int (range 10))
-          x3 (i/fresh-int (range 10))
+    (let [x1 (i/domain (range 10))
+          x2 (i/domain (range 10))
+          x3 (i/domain (range 10))
           allowed [[1 2 3] [4 5 6] [7 8 9]]
           constraint (i/table [x1 x2 x3] allowed)
           result (i/solve constraint [x1 x2 x3])]
@@ -36,7 +36,7 @@
                              {0 0, 1 1}]  ; state 1
                :start       0
                :accept      #{1}}
-          vars (vec (repeatedly 4 #(i/fresh-int #{0 1})))
+          vars (vec (repeatedly 4 #(i/domain #{0 1})))
           solution (i/satisfy (i/regular vars dfa))]
       (is (some? solution))
       ;; last element must be 1
@@ -53,7 +53,7 @@
                              {-1 0, 0 1, 1 1}]
                :start       0
                :accept      #{1}}
-          vars (vec (repeatedly 3 #(i/fresh-int #{-1 0 1})))
+          vars (vec (repeatedly 3 #(i/domain #{-1 0 1})))
           solution (i/satisfy (i/regular vars dfa))]
       (is (some? solution))
       ;; must end in accepting state — at least one 1 that isn't cancelled
@@ -90,8 +90,8 @@
                :start       0
                :accept      #{0}
                :costs       [{1 0, 2 1, 3 2}]}
-          vars (vec (repeatedly 3 #(i/fresh-int #{1 2 3})))
-          cost (i/fresh-int (range 0 10))
+          vars (vec (repeatedly 3 #(i/domain #{1 2 3})))
+          cost (i/domain (range 0 10))
           solution (i/satisfy (i/cost-regular vars cost dfa))]
       (is (some? solution))
       (let [vals (mapv #(get solution %) vars)
@@ -109,8 +109,8 @@
                :start       0
                :accept      #{0}
                :costs       [{1 5, 2 1, 3 3}]}
-          vars (vec (repeatedly 3 #(i/fresh-int #{1 2 3})))
-          cost (i/fresh-int (range 0 100))
+          vars (vec (repeatedly 3 #(i/domain #{1 2 3})))
+          cost (i/domain (range 0 100))
           ;; minimize cost by maximizing (- cost)
           solution (i/maximize (i/- 0 cost) (i/cost-regular vars cost dfa))]
       (is (some? solution))
@@ -130,8 +130,8 @@
                :start       0
                :accept      #{0}
                :costs       [{-1 3, 0 1, 1 2}]}
-          vars (vec (repeatedly 2 #(i/fresh-int #{-1 0 1})))
-          cost (i/fresh-int (range 0 20))
+          vars (vec (repeatedly 2 #(i/domain #{-1 0 1})))
+          cost (i/domain (range 0 20))
           solution (i/maximize (i/- 0 cost) (i/cost-regular vars cost dfa))]
       (is (some? solution))
       ;; minimum cost = 2 * 1 = 2 (all symbols = 0)
@@ -145,7 +145,7 @@
   (testing "chord progressions constrained by table"
     ;; chord IDs: 0=I, 1=ii, 2=iii, 3=IV, 4=V, 5=vi
     (let [progressions [[0 3] [0 4] [3 0] [3 4] [4 0] [5 3] [5 4]]
-          vars (vec (repeatedly 4 #(i/fresh-int (range 6))))
+          vars (vec (repeatedly 4 #(i/domain (range 6))))
           ;; constrain each adjacent pair
           constraints (for [idx (range 3)]
                         (i/table [(vars idx) (vars (inc idx))] progressions))
@@ -176,7 +176,7 @@
                              {-2 0, -1 0, 0 0}]
                :start       0
                :accept      #{0 1}}
-          intervals (vec (repeatedly 6 #(i/fresh-int alphabet)))
+          intervals (vec (repeatedly 6 #(i/domain alphabet)))
           vals (i/solve (i/regular intervals dfa) intervals)]
       (is (some? vals))
       ;; verify the constraint: no three consecutive ascending intervals
@@ -267,8 +267,8 @@
   (testing "CF and florid CP both follow arch contour, CP minimizes leap cost"
     (let [;; === Cantus firmus: 5 notes ===
           n-cf 5
-          cf (vec (for [_ (range n-cf)] (i/fresh-int diatonic)))
-          cf-ivars (vec (for [_ (range (dec n-cf))] (i/fresh-int interval-alphabet)))
+          cf (vec (for [_ (range n-cf)] (i/domain diatonic)))
+          cf-ivars (vec (for [_ (range (dec n-cf))] (i/domain interval-alphabet)))
           cf-ivar-links (apply i/and
                           (for [t (range (dec n-cf))]
                             (i/= (nth cf-ivars t)
@@ -280,14 +280,14 @@
 
           ;; === Counterpoint: 2:1 ratio = 10 notes ===
           n-cp (* 2 n-cf)
-          cp (vec (for [_ (range n-cp)] (i/fresh-int diatonic)))
-          cp-ivars (vec (for [_ (range (dec n-cp))] (i/fresh-int interval-alphabet)))
+          cp (vec (for [_ (range n-cp)] (i/domain diatonic)))
+          cp-ivars (vec (for [_ (range (dec n-cp))] (i/domain interval-alphabet)))
           cp-ivar-links (apply i/and
                           (for [t (range (dec n-cp))]
                             (i/= (nth cp-ivars t)
                                   (i/- (nth cp (inc t)) (nth cp t)))))
           ;; CP contour: arch shape + minimize leap cost via cost_regular
-          cp-cost (i/fresh-int (range 0 50))
+          cp-cost (i/domain (range 0 50))
           cp-contour (i/cost-regular cp-ivars cp-cost
                        (assoc arch-dfa :costs leap-costs))
 
@@ -388,7 +388,7 @@
 
 (deftest regular-nested-and-test
   (testing "regular inside a nested (and ...) solves correctly"
-    (let [vars (vec (repeatedly 4 #(i/fresh-int #{0 1})))
+    (let [vars (vec (repeatedly 4 #(i/domain #{0 1})))
           dfa {:states 2 :alphabet #{0 1}
                :transitions [{0 0, 1 1} {0 0}]
                :start 0 :accept #{0 1}}
@@ -407,7 +407,7 @@
               (str "no adjacent stress at positions " i " and " (inc i)))))))
 
   (testing "regular nested two levels deep"
-    (let [vars (vec (repeatedly 3 #(i/fresh-int #{0 1})))
+    (let [vars (vec (repeatedly 3 #(i/domain #{0 1})))
           dfa {:states 2 :alphabet #{0 1}
                :transitions [{0 0, 1 1} {0 0}]
                :start 0 :accept #{0 1}}
@@ -422,8 +422,8 @@
 
 (deftest table-nested-and-test
   (testing "table inside a nested (and ...) solves correctly"
-    (let [x (i/fresh-int (range 5))
-          y (i/fresh-int (range 5))
+    (let [x (i/domain (range 5))
+          y (i/domain (range 5))
           tuples [[1 2] [3 4]]
           inner (i/and (i/table [x y] tuples)
                        (i/= x 3))
@@ -435,16 +435,16 @@
 
 (deftest table-keyword-test
   (testing "table with keyword-typed vars"
-    (let [w (i/fresh-keyword #{:cat :dog :bird})
-          s (i/fresh-keyword #{:small :big})
+    (let [w (i/domain #{:cat :dog :bird})
+          s (i/domain #{:small :big})
           tuples [[:cat :small] [:dog :big] [:bird :small]]
           solution (i/satisfy (i/table [w s] tuples))]
       (is (some? solution))
       (is (contains? (set tuples) [(solution w) (solution s)]))))
 
   (testing "table with keyword vars inside nested and"
-    (let [w (i/fresh-keyword #{:cat :dog :bird})
-          s (i/fresh-keyword #{:small :big})
+    (let [w (i/domain #{:cat :dog :bird})
+          s (i/domain #{:small :big})
           tuples [[:cat :small] [:dog :big] [:bird :small]]
           inner (i/and (i/table [w s] tuples)
                        (i/= w :dog))

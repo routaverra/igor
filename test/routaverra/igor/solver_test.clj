@@ -5,14 +5,14 @@
 
 (deftest satisfy-sync-test
   (testing "satisfy returns a single valid solution"
-    (let [x (i/fresh-int #{1 2 3})
+    (let [x (i/domain #{1 2 3})
           sol (i/satisfy (i/>= x 1))]
       (is (map? sol))
       (is (#{1 2 3} (get sol x))))))
 
 (deftest satisfy-all-sync-test
   (testing "satisfy-all returns all solutions"
-    (let [x (i/fresh-int #{1 2 3})
+    (let [x (i/domain #{1 2 3})
           sols (i/satisfy-all (i/>= x 1))]
       (is (vector? sols))
       (is (= 3 (clojure.core/count sols)))
@@ -20,7 +20,7 @@
 
 (deftest satisfy-async-test
   (testing "satisfy async returns a channel with one solution"
-    (let [x (i/fresh-int #{1 2 3})
+    (let [x (i/domain #{1 2 3})
           ch (i/satisfy (i/>= x 1) {:async? true})
           sol (async/alt!! ch ([v] v)
                            (async/timeout 5000) :timeout)]
@@ -30,7 +30,7 @@
 
 (deftest satisfy-all-async-test
   (testing "satisfy-all async streams all solutions then closes"
-    (let [x (i/fresh-int #{1 2 3})
+    (let [x (i/domain #{1 2 3})
           ch (i/satisfy-all (i/>= x 1) {:async? true})
           sols (async/<!! (async/go-loop [acc []]
                             (let [[v _] (async/alts! [ch (async/timeout 5000)])]
@@ -42,7 +42,7 @@
 
 (deftest minimize-async-test
   (testing "minimize async returns a channel with optimal solution"
-    (let [x (i/fresh-int (range 1 11))
+    (let [x (i/domain (range 1 11))
           ch (i/minimize x (i/>= x 0) {:async? true})
           sol (async/<!! (async/go-loop [last-sol nil]
                            (let [[v _] (async/alts! [ch (async/timeout 5000)])]

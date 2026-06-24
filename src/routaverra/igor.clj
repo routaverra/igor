@@ -18,10 +18,9 @@
             [clojure.walk :as walk]))
 
 (def fresh api/fresh)
-(def fresh-set api/fresh-set)
-(def fresh-int api/fresh-int)
-(def fresh-bool api/fresh-bool)
-(def fresh-keyword api/fresh-keyword)
+(def domain api/domain)
+(def universe api/universe)
+(def bool api/bool)
 (def bind api/bind)
 
 (defn satisfy

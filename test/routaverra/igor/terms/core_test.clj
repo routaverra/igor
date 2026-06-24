@@ -9,8 +9,8 @@
 
 (deftest gte-test
   (testing ">="
-    (let [a (i/fresh-int int-domain)
-          b (i/fresh-int int-domain)]
+    (let [a (i/domain int-domain)
+          b (i/domain int-domain)]
       (is (= 20
              (get
               (i/satisfy
@@ -20,7 +20,7 @@
                   (i/= b 20))))
               b))))
 
-    (let [a (i/fresh-int int-domain)
+    (let [a (i/domain int-domain)
           b (i/fresh)]
       (is (= true
              (get
@@ -31,7 +31,7 @@
                   (i/= b true))))
               b))))
 
-    (let [a (i/fresh-int int-domain)
+    (let [a (i/domain int-domain)
           b (i/fresh)]
       (is (= true
              (get
@@ -43,8 +43,8 @@
 
 (deftest lte-test
   (testing "<="
-    (let [a (i/fresh-int int-domain)
-          b (i/fresh-int int-domain)]
+    (let [a (i/domain int-domain)
+          b (i/domain int-domain)]
       (is (= 20
              (get
               (i/satisfy
@@ -54,7 +54,7 @@
                   (i/= b 20))))
               b))))
 
-    (let [a (i/fresh-int int-domain)
+    (let [a (i/domain int-domain)
           b (i/fresh)]
       (is (= true
              (get
@@ -65,7 +65,7 @@
                   (i/= b true))))
               b))))
 
-    (let [a (i/fresh-int int-domain)
+    (let [a (i/domain int-domain)
           b (i/fresh)]
       (is (= true
              (get
@@ -77,8 +77,8 @@
 
 (deftest gt-test
   (testing ">"
-    (let [a (i/fresh-int int-domain)
-          b (i/fresh-int int-domain)]
+    (let [a (i/domain int-domain)
+          b (i/domain int-domain)]
       (is (= 20
              (get
               (i/satisfy
@@ -88,7 +88,7 @@
                   (i/= b 20))))
               b))))
 
-    (let [a (i/fresh-int int-domain)
+    (let [a (i/domain int-domain)
           b (i/fresh)]
       (is (= false
              (get
@@ -99,7 +99,7 @@
                   (i/= b true))))
               b))))
 
-    (let [a (i/fresh-int int-domain)
+    (let [a (i/domain int-domain)
           b (i/fresh)]
       (is (= true
              (get
@@ -111,8 +111,8 @@
 
 (deftest lt-test
   (testing "<"
-    (let [a (i/fresh-int int-domain)
-          b (i/fresh-int int-domain)]
+    (let [a (i/domain int-domain)
+          b (i/domain int-domain)]
       (is (= 20
              (get
               (i/satisfy
@@ -122,7 +122,7 @@
                   (i/= b 20))))
               b))))
 
-    (let [a (i/fresh-int int-domain)
+    (let [a (i/domain int-domain)
           b (i/fresh)]
       (is (= true
              (get
@@ -133,7 +133,7 @@
                   (i/= b true))))
               b))))
 
-    (let [a (i/fresh-int int-domain)
+    (let [a (i/domain int-domain)
           b (i/fresh)]
       (is (= true
              (get
@@ -145,10 +145,10 @@
 
 (deftest zero?-test
   (testing "zero?"
-    (is (= 0 (only-val (i/satisfy (i/zero? (i/fresh-int int-domain))))))
+    (is (= 0 (only-val (i/satisfy (i/zero? (i/domain int-domain))))))
 
-    (is (= 42 (let [a (i/fresh-int int-domain)
-                     b (i/fresh-int int-domain)]
+    (is (= 42 (let [a (i/domain int-domain)
+                     b (i/domain int-domain)]
                  (->
                   (i/satisfy
                    (i/and (i/= 0 a)
@@ -158,10 +158,10 @@
 
 (deftest pos?-test
   (testing "pos?"
-    (is (clojure.core/pos? (only-val (i/satisfy (i/pos? (i/fresh-int int-domain))))))
+    (is (clojure.core/pos? (only-val (i/satisfy (i/pos? (i/domain int-domain))))))
 
-    (is (= 42 (let [a (i/fresh-int int-domain)
-                     b (i/fresh-int int-domain)]
+    (is (= 42 (let [a (i/domain int-domain)
+                     b (i/domain int-domain)]
                  (->
                   (i/satisfy
                    (i/and (i/= -42 a)
@@ -171,10 +171,10 @@
 
 (deftest neg?-test
   (testing "neg?"
-    (is (clojure.core/neg? (only-val (i/satisfy (i/neg? (i/fresh-int int-domain))))))
+    (is (clojure.core/neg? (only-val (i/satisfy (i/neg? (i/domain int-domain))))))
 
-    (is (= 42 (let [a (i/fresh-int int-domain)
-                     b (i/fresh-int int-domain)]
+    (is (= 42 (let [a (i/domain int-domain)
+                     b (i/domain int-domain)]
                  (->
                   (i/satisfy
                    (i/and (i/= 42 a)
@@ -184,31 +184,31 @@
 
 (deftest plus-test
   (testing "+"
-    (is (= 2 (only-val (i/satisfy (i/= (i/+ 1 (i/fresh-int int-domain)) 3)))))))
+    (is (= 2 (only-val (i/satisfy (i/= (i/+ 1 (i/domain int-domain)) 3)))))))
 
 (deftest product-test
   (testing "*"
-    (is (= 3 (only-val (i/satisfy (i/= (i/* 1 (i/fresh-int int-domain)) 3)))))))
+    (is (= 3 (only-val (i/satisfy (i/= (i/* 1 (i/domain int-domain)) 3)))))))
 
 (deftest minus-test
   (testing "-"
-    (is (= -2 (only-val (i/satisfy (i/= (i/- 1 (i/fresh-int int-domain)) 3)))))))
+    (is (= -2 (only-val (i/satisfy (i/= (i/- 1 (i/domain int-domain)) 3)))))))
 
 (deftest dec-test
   (testing "dec"
-    (is (= 4 (only-val (i/satisfy (i/= (i/dec (i/fresh-int int-domain)) 3)))))))
+    (is (= 4 (only-val (i/satisfy (i/= (i/dec (i/domain int-domain)) 3)))))))
 
 (deftest inc-test
   (testing "inc"
-    (is (= 2 (only-val (i/satisfy (i/= (i/inc (i/fresh-int int-domain)) 3)))))))
+    (is (= 2 (only-val (i/satisfy (i/= (i/inc (i/domain int-domain)) 3)))))))
 
 (deftest even?-test
   (testing "even?"
-    (is (clojure.core/even? (only-val (i/satisfy (i/even? (i/fresh-int int-domain))))))))
+    (is (clojure.core/even? (only-val (i/satisfy (i/even? (i/domain int-domain))))))))
 
 (deftest odd?-test
   (testing "odd?"
-    (is (clojure.core/odd? (only-val (i/satisfy (i/odd? (i/fresh-int int-domain))))))))
+    (is (clojure.core/odd? (only-val (i/satisfy (i/odd? (i/domain int-domain))))))))
 
 (deftest true?-test
   (testing "true?"
@@ -220,15 +220,15 @@
 
 (deftest max-test
   (testing "max"
-    (is (= 8 (only-val (i/satisfy (i/= (i/fresh-int int-domain) (i/max 8 4 2))))))))
+    (is (= 8 (only-val (i/satisfy (i/= (i/domain int-domain) (i/max 8 4 2))))))))
 
 (deftest min-test
   (testing "min"
-    (is (= -2 (only-val (i/satisfy (i/= (i/fresh-int int-domain) (i/min 8 4 -2))))))))
+    (is (= -2 (only-val (i/satisfy (i/= (i/domain int-domain) (i/min 8 4 -2))))))))
 
 (deftest divide-test
   (testing "/"
-    (is (= 2 (only-val (i/satisfy (i/= (i// 6 (i/fresh-int int-domain)) 3)))))))
+    (is (= 2 (only-val (i/satisfy (i/= (i// 6 (i/domain int-domain)) 3)))))))
 
 (deftest equals-test
   (testing "="
@@ -252,13 +252,13 @@
 
 (deftest not=-test
   (testing "not="
-    (is (clojure.core/not= 1 (only-val (i/satisfy (i/not= (i/fresh-int int-domain) 1)))))
+    (is (clojure.core/not= 1 (only-val (i/satisfy (i/not= (i/domain int-domain) 1)))))
 
     (is (clojure.core/not= #{} (only-val (i/satisfy (i/not= (i/bind (range 100) (i/fresh)) #{})))))))
 
 (deftest implication-test
   (testing "?>"
-    (let [a (i/fresh-int int-domain)]
+    (let [a (i/domain int-domain)]
       (is (= 3
              (get
               (i/satisfy
@@ -273,7 +273,7 @@
 
 (deftest not-test
   (testing "not"
-    (let [a (i/fresh-int int-domain)]
+    (let [a (i/domain int-domain)]
       (is (clojure.core/not=
            1
            (get
@@ -292,8 +292,8 @@
       (is (= false (throws? (i/if (i/fresh) #{} #{})))))
 
     (testing "evaluates"
-      (let [a (i/fresh-int int-domain)
-            b (i/fresh-int int-domain)]
+      (let [a (i/domain int-domain)
+            b (i/domain int-domain)]
         (is (= 0
                (get
                 (i/satisfy
@@ -329,8 +329,8 @@
       (is (= false (throws? (i/cond (i/fresh) #{1 2 3} :else #{})))))
 
     (testing "evaluates"
-      (let [a (i/fresh-int int-domain)
-            b (i/fresh-int int-domain)]
+      (let [a (i/domain int-domain)
+            b (i/domain int-domain)]
         (is (= 0
                (get
                 (i/satisfy
@@ -365,9 +365,9 @@
 
 (deftest nth-test
   (testing "nth with literal index"
-    (let [a (i/fresh-int int-domain)
-          b (i/fresh-int int-domain)
-          c (i/fresh-int int-domain)]
+    (let [a (i/domain int-domain)
+          b (i/domain int-domain)
+          c (i/domain int-domain)]
       (is (= 10
              (get
               (i/satisfy
@@ -386,8 +386,8 @@
               c)))))
 
   (testing "nth with variable index"
-    (let [a (i/fresh-int int-domain)
-          idx (i/fresh-int (range 3))
+    (let [a (i/domain int-domain)
+          idx (i/domain (range 3))
           elems [10 20 30]]
       (is (= 20
              (get
@@ -400,12 +400,12 @@
   (testing "nth single element"
     (is (= 42
            (only-val
-            (i/satisfy (i/= (i/nth [42] 0) (i/fresh-int int-domain)))))))
+            (i/satisfy (i/= (i/nth [42] 0) (i/domain int-domain)))))))
 
   (testing "nth with decision elements and variable index"
-    (let [elems (vec (repeatedly 4 #(i/fresh-int int-domain)))
-          idx (i/fresh-int (range 4))
-          result (i/fresh-int int-domain)
+    (let [elems (vec (repeatedly 4 #(i/domain int-domain)))
+          idx (i/domain (range 4))
+          result (i/domain int-domain)
           solution (i/satisfy
                     (apply i/and
                            (i/= idx 2)
@@ -417,8 +417,8 @@
 
 (deftest abs-test
   (testing "abs with decisions"
-    (let [x (i/fresh-int (range -100 101))
-          y (i/fresh-int (range 101))]
+    (let [x (i/domain (range -100 101))
+          y (i/domain (range 101))]
       (is (= 7 (get (i/satisfy (i/and (i/= x -7) (i/= y (i/abs x)))) y)))
       (is (= 5 (get (i/satisfy (i/and (i/= x 5) (i/= y (i/abs x)))) y)))
       (is (= 0 (get (i/satisfy (i/and (i/= x 0) (i/= y (i/abs x)))) y)))))
@@ -430,9 +430,9 @@
 
 (deftest all-different-test
   (testing "all-different constraint"
-    (let [a (i/fresh-int (range 5))
-          b (i/fresh-int (range 5))
-          c (i/fresh-int (range 5))
+    (let [a (i/domain (range 5))
+          b (i/domain (range 5))
+          c (i/domain (range 5))
           solution (i/satisfy (i/all-different a b c))
           vals (map solution [a b c])]
       (is (= 3 (count (distinct vals))))))
@@ -449,21 +449,21 @@
     (is (= 1 (i/pow 1 100))))
 
   (testing "pow with decisions"
-    (let [x (i/fresh-int (range 1 11))
-          y (i/fresh-int (range 101))]
+    (let [x (i/domain (range 1 11))
+          y (i/domain (range 101))]
       (is (= 8 (get (i/satisfy (i/and (i/= x 2) (i/= y (i/pow x 3)))) y)))
       (is (= 27 (get (i/satisfy (i/and (i/= x 3) (i/= y (i/pow x 3)))) y)))))
 
   (testing "pow with variable exponent"
-    (let [base (i/fresh-int (range 1 11))
-          exp  (i/fresh-int (range 5))
-          result (i/fresh-int (range 10000))]
+    (let [base (i/domain (range 1 11))
+          exp  (i/domain (range 5))
+          result (i/domain (range 10000))]
       (is (= 16 (get (i/satisfy (i/and (i/= base 2) (i/= exp 4) (i/= result (i/pow base exp)))) result)))))
 
   (testing "pow validates against Clojure evaluation"
-    (let [x (i/fresh-int (range 1 6))
-          y (i/fresh-int (range 4))
-          r (i/fresh-int (range 10000))
+    (let [x (i/domain (range 1 6))
+          y (i/domain (range 4))
+          r (i/domain (range 10000))
           solution (i/satisfy (i/and (i/= x 3) (i/= y 3) (i/= r (i/pow x y))))]
       (is (= 27 (get solution r)))
       (is (i/validate-solution
@@ -476,8 +476,8 @@
          (let [n 3]
            (->> (for [x (concat (range (clojure.core/- 0 n) 0) (range 1 (clojure.core/inc n)))
                       y (concat (range (clojure.core/- 0 n) 0) (range 1 (clojure.core/inc n)))
-                      :let [a (i/fresh-int int-domain)
-                            b (i/fresh-int int-domain)]]
+                      :let [a (i/domain int-domain)
+                            b (i/domain int-domain)]]
                   (i/and
                    (i/= a x)
                    (i/= b y)

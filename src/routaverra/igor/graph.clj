@@ -37,13 +37,13 @@
 (defn- make-ns-es
   "Create n-nodes bool vars + n-edges bool vars."
   [graph]
-  {:ns-vars (vec (repeatedly (:n-nodes graph) api/fresh-bool))
-   :es-vars (vec (repeatedly (:n-edges graph) api/fresh-bool))})
+  {:ns-vars (vec (repeatedly (:n-nodes graph) api/bool))
+   :es-vars (vec (repeatedly (:n-edges graph) api/bool))})
 
 (defn- make-es
   "Create just n-edges bool vars (for spanning tree variants)."
   [graph]
-  {:es-vars (vec (repeatedly (:n-edges graph) api/fresh-bool))})
+  {:es-vars (vec (repeatedly (:n-edges graph) api/bool))})
 
 (defn- translate-1idx
   "Translate a value to 1-indexed MiniZinc. If ground integer, increment.
@@ -857,7 +857,7 @@
         n (:n-nodes g)
         succ (vec (for [node nodes]
                     (let [out-neighbors (set (get adj node []))]
-                      (api/fresh-int out-neighbors))))
+                      (api/domain out-neighbors {:type :int}))))
         argv (vec succ)]
     (api/cacheing-validate
      (->TermGraphCircuit argv g succ))))
@@ -871,8 +871,8 @@
         nodes (vec (sort (:nodes g)))
         succ (vec (for [node nodes]
                     (let [out-neighbors (set (get adj node []))
-                          domain (conj out-neighbors node)]
-                      (api/fresh-int domain))))
+                          d (conj out-neighbors node)]
+                      (api/domain d {:type :int}))))
         argv (vec succ)]
     (api/cacheing-validate
      (->TermGraphSubCircuit argv g succ))))
