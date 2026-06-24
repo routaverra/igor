@@ -25,8 +25,8 @@ io.github.routaverra/igor {:git/sha "6b4d550cdc6c3b58f6d62938797dbe831e3fa684"}
 (require '[routaverra.igor :as i])
 
 ;; Create two integer variables, each in {0..9}
-(let [x (i/fresh-int (range 10))
-      y (i/fresh-int (range 10))
+(let [x (i/domain (range 10))
+      y (i/domain (range 10))
       ;; State constraints: x + y = 10, x > y
       solution (i/satisfy (i/and (i/= (i/+ x y) 10)
                                  (i/> x y)))]
@@ -40,14 +40,20 @@ Igor's operators (`i/+`, `i/=`, `i/and`, etc.) shadow their `clojure.core` count
 
 ## Core Concepts
 
-**Variables** — `fresh-int`, `fresh-bool`, `fresh-set`, `fresh-keyword` create typed decision variables. Domains are passed as collections:
+Every decision variable is one of two things: a single value drawn from a **domain**, or a subset of a **universe**. Element type (integer or keyword) is inferred from the values you provide; pass `{:type ...}` to be explicit or to seed an empty/computed domain.
+
+**Variables** — `domain`, `universe`, `bool` are the three constructors.
 
 ```clojure
-(i/fresh-int (range 10))           ; integer in {0..9}
-(i/fresh-int #{1 3 5 7})           ; integer in {1,3,5,7}
-(i/fresh-bool)                     ; boolean
-(i/fresh-set (range 12))           ; subset of {0..11}
-(i/fresh-keyword #{:red :blue})    ; keyword from a domain of keywords
+(i/domain (range 10))                  ; integer in {0..9}
+(i/domain #{1 3 5 7})                  ; integer in {1,3,5,7}
+(i/domain #{:red :blue})               ; keyword in {:red, :blue}
+(i/universe (range 12))                ; subset of {0..11}
+(i/universe #{:wifi :bluetooth})       ; subset of {:wifi, :bluetooth}
+(i/bool)                               ; boolean
+
+;; :type is both a rescue (for empty/computed colls) and an assertion
+(i/domain (filter even? xs) {:type :int})
 ```
 
 **Solving** — `satisfy` returns one solution as `{Decision -> value}`. `satisfy-all` returns all solutions. `maximize` / `minimize` take an objective expression and a constraint:
@@ -94,7 +100,7 @@ Any function that returns a constraint expression works with `map`, `apply`, and
   (i/> (nth vars k) k))
 
 (let [n    5
-      vars (vec (repeatedly n #(i/fresh-int (range 20))))]
+      vars (vec (repeatedly n #(i/domain (range 20))))]
   (i/solve (apply i/and (map #(exceeds-index vars %) (range n)))
            vars))
 ;; => e.g. [1 2 3 4 5] — each value exceeds its index
@@ -113,7 +119,7 @@ Pass constraint-producing functions to higher-order combinators the same way you
 Enforce "strictly increasing" and "gaps ≤ 3" on the same variables:
 
 ```clojure
-(let [vars (vec (repeatedly 5 #(i/fresh-int (range 20))))]
+(let [vars (vec (repeatedly 5 #(i/domain (range 20))))]
   (i/solve (i/and (pairwise i/< vars)
                   (pairwise (fn [a b] (i/<= (i/- b a) 3)) vars))
            vars))
@@ -135,7 +141,7 @@ Split a problem into independent constraint functions, then assemble them at the
                    (apply i/all-different col)))))
 
 (let [grid (vec (for [_ (range 4)]
-                  (vec (repeatedly 4 #(i/fresh-int (range 1 5))))))]
+                  (vec (repeatedly 4 #(i/domain (range 1 5))))))]
   (i/solve (i/and (row-constraints grid)
                   (col-constraints grid))
            grid))
@@ -153,8 +159,8 @@ Each letter stands for a different digit (0–9). The goal: find the unique digi
 ```clojure
 (let [d (range 10)
       ;; One decision variable per letter, each drawn from 0–9
-      s (i/fresh-int d) e (i/fresh-int d) n (i/fresh-int d) d* (i/fresh-int d)
-      m (i/fresh-int d) o (i/fresh-int d) r (i/fresh-int d) y  (i/fresh-int d)
+      s (i/domain d) e (i/domain d) n (i/domain d) d* (i/domain d)
+      m (i/domain d) o (i/domain d) r (i/domain d) y  (i/domain d)
       ;; Build the place-value numbers from their digits
       send  (i/+ (i/* s 1000) (i/* e 100) (i/* n 10) d*)
       more  (i/+ (i/* m 1000) (i/* o 100) (i/* r 10) e)
@@ -172,7 +178,7 @@ Each letter stands for a different digit (0–9). The goal: find the unique digi
 ```clojure
 ;; Find a subset of {0..11} such that no three consecutive
 ;; elements (mod 12) are all present — "cluster-free"
-(let [x (i/fresh-set (range 12))
+(let [x (i/universe (range 12))
       cluster-free
       (i/every? x
         (fn [a]
@@ -189,7 +195,7 @@ Keywords let you constrain symbolic values directly — no manual integer encodi
 ```clojure
 ;; Graph coloring: assign colors to nodes so no adjacent pair shares a color
 (let [edges [[0 1] [0 2] [1 2] [1 3] [2 4] [3 4]]
-      colors (vec (repeatedly 5 #(i/fresh-keyword #{:red :green :blue})))
+      colors (vec (repeatedly 5 #(i/domain #{:red :green :blue})))
       sol (i/satisfy
            (->> edges
                 (map (fn [[u v]] (i/not= (nth colors u) (nth colors v))))
@@ -198,11 +204,11 @@ Keywords let you constrain symbolic values directly — no manual integer encodi
 ;; => [:red :green :blue :blue :red]
 ```
 
-Keywords work with sets too — `fresh-set` auto-detects keyword domains:
+Keywords work with sets too — `universe` infers the element type from the collection:
 
 ```clojure
 ;; Select a subset of features with dependency constraints
-(let [features (i/fresh-set #{:wifi :bluetooth :nfc :gps :lte})
+(let [features (i/universe #{:wifi :bluetooth :nfc :gps :lte})
       sol (i/satisfy (i/and (i/contains? features :wifi)
                             (i/?> (i/contains? features :lte)
                                        (i/contains? features :gps))
@@ -216,8 +222,8 @@ Different keyword variables can draw from different domains in the same problem:
 
 ```clojure
 ;; Product configuration — constraints read like business rules
-(let [color (i/fresh-keyword #{:red :blue :black})
-      trim  (i/fresh-keyword #{:sport :luxury :base})
+(let [color (i/domain #{:red :blue :black})
+      trim  (i/domain #{:sport :luxury :base})
       sol (i/satisfy (i/and (i/?> (i/= trim :sport) (i/not= color :blue))
                             (i/?> (i/= trim :luxury) (i/= color :black))
                             (i/= trim :sport)))]
@@ -232,7 +238,7 @@ You define a graph as an edge list, then apply structural constraints — paths,
 ```clojure
 ;; Weighted directed graph, minimize path cost from 0 to 3
 (let [g      (i/digraph [[0 1 2] [0 2 4] [1 2 1] [1 3 7] [2 3 3]])
-      cost   (i/fresh-int (range 1000))
+      cost   (i/domain (range 1000))
       handle (i/bounded-dpath g 0 3 cost)
       sol    (i/minimize cost handle)]
   {:cost  (sol cost)
@@ -248,9 +254,9 @@ You define a graph as an edge list, then apply structural constraints — paths,
 
 ```clojure
 ;; Constrain [x y z] to one of three allowed triples
-(let [x (i/fresh-int (range 10))
-      y (i/fresh-int (range 10))
-      z (i/fresh-int (range 10))
+(let [x (i/domain (range 10))
+      y (i/domain (range 10))
+      z (i/domain (range 10))
       allowed [[1 2 3] [4 5 6] [7 8 9]]]
   (i/solve (i/table [x y z] allowed) [x y z]))
 ;; => one of [1 2 3], [4 5 6], or [7 8 9]
@@ -268,7 +274,7 @@ You define a graph as an edge list, then apply structural constraints — paths,
                           {0 0, 1 1}]   ; from state 1: same
             :start       0
             :accept      #{1}}          ; only state 1 is accepting
-      vars (vec (repeatedly 4 #(i/fresh-int #{0 1})))]
+      vars (vec (repeatedly 4 #(i/domain #{0 1})))]
   (i/solve (i/regular vars dfa) vars))
 ;; => e.g. [0 1 0 1]  — last element is always 1
 ```
@@ -281,8 +287,8 @@ You define a graph as an edge list, then apply structural constraints — paths,
             :transitions [{1 0, 2 0, 3 0}]   ; single state, all symbols loop back
             :start 0 :accept #{0}
             :costs [{1 5, 2 1, 3 3}]}         ; symbol 1 costs 5, symbol 2 costs 1, ...
-      vars (vec (repeatedly 3 #(i/fresh-int #{1 2 3})))
-      cost (i/fresh-int (range 100))
+      vars (vec (repeatedly 3 #(i/domain #{1 2 3})))
+      cost (i/domain (range 100))
       sol  (i/minimize cost (i/cost-regular vars cost dfa))]
   (sol cost))
 ;; => 3 (all symbols = 2, each costs 1)
@@ -292,9 +298,9 @@ You define a graph as an edge list, then apply structural constraints — paths,
 
 ```clojure
 ;; Find a set whose intersection with #{4 5 6 7 8 9} equals #{4 5 6}
-(let [a   (i/fresh-set (range 12))
-      b   (i/fresh-set (range 12))
-      res (i/fresh-set (range 12))
+(let [a   (i/universe (range 12))
+      b   (i/universe (range 12))
+      res (i/universe (range 12))
       sol (i/satisfy
            (i/and (i/= b #{4 5 6 7 8 9})
                   (i/= res #{4 5 6})
@@ -307,7 +313,7 @@ You define a graph as an edge list, then apply structural constraints — paths,
 
 ```clojure
 ;; Find a set X such that {x+1 | x ∈ X} = #{1 2 3}
-(let [x   (i/fresh-set (range 12))
+(let [x   (i/universe (range 12))
       sol (i/satisfy
            (i/= #{1 2 3}
                  (i/image x (fn [a] (i/+ a 1)))))]
@@ -325,10 +331,9 @@ In the tables below, `T` denotes a polymorphic type and `*` denotes variadic (tw
 
 | Function | Description |
 |----------|-------------|
-| `fresh-int` | `(fresh-int domain)` — integer variable |
-| `fresh-bool` | `(fresh-bool)` — boolean variable |
-| `fresh-set` | `(fresh-set universe)` — set variable; universe can be integers or keywords |
-| `fresh-keyword` | `(fresh-keyword domain)` — keyword variable from a set of keywords |
+| `domain` | `(domain coll)` / `(domain coll {:type :int\|:keyword})` — scalar variable; element type inferred from `coll`, overridable/required for empty or runtime-computed colls |
+| `universe` | `(universe coll)` / `(universe coll {:type :int\|:keyword})` — set variable over the powerset of `coll`; same inference rules |
+| `bool` | `(bool)` — boolean variable |
 
 ### Arithmetic
 
@@ -425,8 +430,8 @@ In the tables below, `T` denotes a polymorphic type and `*` denotes variadic (tw
 The handle returned by `alternatives` is a constraint — pass it directly to `satisfy`, `and`, etc. `choice` returns the decision variable for the selected branch index. Use it to build expressions that depend on the selection, or resolve it against a solution to find out which branch was chosen:
 
 ```clojure
-(let [x (i/fresh-int (range 100))
-      y (i/fresh-int (range 100))
+(let [x (i/domain (range 100))
+      y (i/domain (range 100))
       ;; Two possible constraint regimes
       alt (i/alternatives
             (i/and (i/< x 10) (i/< y 10))     ;; branch 0: both small
