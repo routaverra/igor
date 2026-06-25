@@ -11,7 +11,6 @@
             [routaverra.igor.terms.introduced :as terms.introduced]
             [routaverra.igor.graph :as graph]
             [routaverra.igor.extensional :as extensional]
-            [routaverra.igor.notation :as notation]
             [routaverra.igor.alternatives :as alternatives]
             [routaverra.igor.cache :as cache]
             [clojure.walk :as walk]))
@@ -143,9 +142,6 @@
 (def table extensional/table)
 (def regular extensional/regular)
 (def cost-regular extensional/cost-regular)
-(def as notation/as)
-(def render-notation notation/render-notation)
-(def render-problem notation/render-problem)
 
 (defn validate-solution
   "Evaluate a constraint against a solution map in pure Clojure.

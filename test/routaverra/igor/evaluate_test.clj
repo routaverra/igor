@@ -193,12 +193,6 @@
                         (fn [i] (i/+ i x)))]
       (is (= #{10 11 12} (protocols/evaluate term {x 10}))))))
 
-(deftest as-evaluate-test
-  (testing "TermAs delegates to inner"
-    (let [x (api/domain (range 10))
-          term (i/as :my-name (i/+ x 1))]
-      (is (= 6 (protocols/evaluate term {x 5}))))))
-
 ;; ============================================================
 ;; 2. Solver parity — solve real problems, then validate-solution
 ;; ============================================================

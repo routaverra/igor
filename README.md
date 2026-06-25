@@ -505,14 +505,6 @@ You define a directed graph as an edge list, then apply constraints that ask the
 
 All nodes are 0-indexed.
 
-### Notation Rendering
-
-| Function | Description |
-|----------|-------------|
-| `as` | `(as :name expr)` — attach a name for notation rendering |
-| `render-notation` | `(render-notation expr :format :latex)` — render constraint as LaTeX or Unicode |
-| `render-problem` | `(render-problem constraint :format :unicode :objective obj)` — render full problem statement |
-
 ### Solving
 
 | Function | Description |
